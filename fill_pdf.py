@@ -138,8 +138,8 @@ def _clear_screenshots(doc):
 def fill_contract(data: dict, screenshots: list = None) -> bytes:
     doc = fitz.open(TEMPLATE_PATH)
 
-    has_regular = os.path.exists(FONT_REGULAR)
-    has_bold = os.path.exists(FONT_BOLD)
+    has_regular = FONT_REGULAR is not None and os.path.exists(FONT_REGULAR)
+    has_bold = FONT_BOLD is not None and os.path.exists(FONT_BOLD)
 
     for page in doc:
         annot = page.first_annot
