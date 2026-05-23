@@ -22,24 +22,6 @@ def _find_font(name):
 FONT_REGULAR = _find_font("TimesNewRoman.ttf") or _find_font("Times New Roman.ttf") or _find_font("LiberationSerif-Regular.ttf") or _find_font("times.ttf")
 FONT_BOLD = _find_font("TimesNewRomanBold.ttf") or _find_font("Times New Roman Bold.ttf") or _find_font("LiberationSerif-Bold.ttf") or _find_font("timesbd.ttf")
 
-MIN_FONT_SIZE = 5
-
-MAX_AVAILABLE_WIDTH = {
-    "tc_kimlik": 65.0,
-    "adres": 285.0,
-    "eposta": 117.0,
-    "dogum_tarihi": 58.0,
-    "ad": 57.0,
-    "soyad": 43.0,
-    "ulke": 32.0,
-    "baslangic_tarihi": 73.0,
-    "bitis_tarihi": 69.0,
-    "odeme_bilgisi": 62.0,
-    "sozlesme_tarihi": 57.0,
-}
-
-WIDTH_SAFETY_MARGIN = 0.92
-
 REPLACEMENTS = [
     (0, "39931582910", "tc_kimlik", False),
     (0, "Mehmet Akif mah. Mimar Sinan Cad. Alınteri sk. No19", "adres", False),
@@ -61,6 +43,7 @@ TEXT_TRANSFORMS = {
 }
 
 FONT_SIZE = 12
+LINE_HEIGHT = FONT_SIZE * 1.3
 Y_TOLERANCE = 5
 
 SCREENSHOT_PAGES = [7, 8, 9]
@@ -79,6 +62,20 @@ SCREENSHOT_LAYOUT = [
         {"rect": fitz.Rect(46, 332, 557, 605)},
     ]},
 ]
+
+EXPANDED_RECTS = {
+    "tc_kimlik": lambda r: fitz.Rect(r.x0, r.y0, 111.9, r.y1 + LINE_HEIGHT),
+    "adres": lambda r: fitz.Rect(r.x0, r.y0, 506.1, r.y1 + LINE_HEIGHT),
+    "eposta": lambda r: fitz.Rect(r.x0, r.y0, 204.6, r.y1 + LINE_HEIGHT),
+    "dogum_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 415.2, r.y1 + LINE_HEIGHT),
+    "ad": lambda r: fitz.Rect(r.x0, r.y0, 557.0, r.y1 + LINE_HEIGHT),
+    "soyad": lambda r: fitz.Rect(r.x0, r.y0, 83.2, r.y1 + LINE_HEIGHT),
+    "ulke": lambda r: fitz.Rect(r.x0, r.y0, 261.3, r.y1 + LINE_HEIGHT),
+    "baslangic_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 393.9, r.y1 + LINE_HEIGHT),
+    "bitis_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 465.1, r.y1 + LINE_HEIGHT),
+    "odeme_bilgisi": lambda r: fitz.Rect(r.x0, r.y0, 318.5, r.y1 + LINE_HEIGHT),
+    "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 324.8, r.y1 + LINE_HEIGHT),
+}
 
 
 def _pick_rect(areas):
@@ -99,16 +96,6 @@ def _pick_rect(areas):
         return list(groups.values())[0]
 
     return groups[max(groups.keys())]
-
-
-def _fit_font_size(page, text, fontname, fontsize, max_width):
-    font = fitz.Font(fontname)
-    text_width = font.text_length(text, fontsize=fontsize)
-    if text_width <= max_width:
-        return fontsize
-    ratio = max_width / text_width
-    new_size = max(fontsize * ratio, MIN_FONT_SIZE)
-    return round(new_size, 1)
 
 
 def _insert_screenshot(page, image_bytes, rect):
@@ -195,7 +182,7 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
         rect = _pick_rect(areas)
 
         for area in areas:
-            page.add_redact_annot(area)
+            page.add_redact_annot(area, fill=(1, 1, 1))
 
         pending.append((page_idx, rect, new_text, use_bold, key))
 
@@ -215,26 +202,15 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
     for page_idx, rect, new_text, use_bold, key in pending:
         page = doc[page_idx]
         fontname = "TNRB" if (use_bold and has_bold) else ("TNR" if has_regular else "helv")
-        fontfile = FONT_BOLD if (use_bold and has_bold) else (FONT_REGULAR if has_regular else None)
-
-        max_w = MAX_AVAILABLE_WIDTH.get(key, rect.width)
-        fontsize = FONT_SIZE
-
-        if fontfile:
-            font = fitz.Font(fontfile=fontfile)
-            text_width = font.text_length(new_text, fontsize=fontsize)
-            effective_max = max_w * WIDTH_SAFETY_MARGIN
-            if text_width > effective_max:
-                fontsize = max(fontsize * effective_max / text_width, MIN_FONT_SIZE)
 
         x = rect.x0
-        y = rect.y0 + fontsize * 0.78
+        y = rect.y0 + FONT_SIZE * 0.78
 
         page.insert_text(
             (x, y),
             new_text,
             fontname=fontname,
-            fontsize=fontsize,
+            fontsize=FONT_SIZE,
             color=(0, 0, 0),
         )
 
