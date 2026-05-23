@@ -17,44 +17,38 @@ st.set_page_config(page_title="AIESEC Sözleşme Oluşturucu", page_icon="📄",
 st.title("📄 AIESEC Sözleşme Oluşturucu")
 st.markdown("Formu doldurarak Değişim Katılımcısı Sözleşmesi PDF'ini otomatik oluşturun.")
 
-st.header("Kişisel Bilgiler")
-col1, col2 = st.columns(2)
-
-with col1:
+with st.expander("📋 Kişisel Bilgiler", expanded=True):
     tc_kimlik = st.text_input("TC Kimlik No *", max_chars=11)
-    ad = st.text_input("Ad *")
+    ad = st.text_input("Ad (First Name) *")
+    soyad = st.text_input("Soyad (Last Name) *")
     adres = st.text_input("Adres *")
-
-with col2:
     eposta = st.text_input("E-posta *")
-    soyad = st.text_input("Soyad *")
-    dogum_tarihi = st.text_input("Doğum Tarihi (DD.MM.YYYY) *")
+    dogum_tarihi = st.text_input("Doğum Tarihi *", placeholder="DD.MM.YYYY")
 
-st.header("Program Bilgileri")
-col3, col4 = st.columns(2)
-
-with col3:
+with st.expander("🌍 Program Bilgileri", expanded=True):
     ulke = st.text_input("Program Ülkesi *")
-    baslangic_tarihi = st.text_input("Başlangıç Tarihi (DD/MM/YYYY) *")
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        baslangic_tarihi = st.text_input("Başlangıç Tarihi *", placeholder="DD/MM/YYYY")
+    with col2:
+        bitis_tarihi = st.text_input("Bitiş Tarihi *", placeholder="DD/MM/YYYY")
+    col3, col4 = st.columns(2)
+    with col3:
+        tutar = st.number_input("Tutar *", min_value=0)
+    with col4:
+        para_birimi = st.text_input("Para Birimi *", help="ör: EGP, USD, EUR")
+    sozlesme_tarihi = st.text_input("Sözleşme Tarihi *", placeholder="DD/MM/YYYY")
 
-with col4:
-    para_birimi = st.text_input("Para Birimi *", help="Ödeme para birimi (ör: EGP, USD, EUR)")
-    tutar = st.number_input("Tutar *", min_value=0)
-    bitis_tarihi = st.text_input("Bitiş Tarihi (DD/MM/YYYY) *")
-
-sozlesme_tarihi = st.text_input("Sözleşme Tarihi (DD/MM/YYYY) *")
-
-st.header("Ekran Görüntüleri")
-st.markdown("Sözleşmenin son 3 sayfasındaki ekran görüntülerini yükleyin. En fazla 6 görsel (her sayfada 2 adet). Yüklemezseniz sayfalar boş olacaktır.")
-uploaded_files = st.file_uploader(
-    "Ekran görüntülerini yükle",
-    type=["png", "jpg", "jpeg"],
-    accept_multiple_files=True,
-    help="Görseller yükleme sırasına göre yerleştirilir (sayfa 8 üst/alt, sayfa 9 üst/alt, sayfa 10 üst/alt).",
-)
-
-if uploaded_files:
-    st.info(f"{len(uploaded_files)} görsel yüklendi ({6 - len(uploaded_files)} boş slot kaldı)")
+with st.expander("📸 Ekran Görüntüleri", expanded=False):
+    st.markdown("Sözleşmenin son 3 sayfasındaki ekran görüntülerini yükleyin. En fazla 6 görsel (her sayfada 2 adet). Yüklemezseniz sayfalar boş olacaktır.")
+    uploaded_files = st.file_uploader(
+        "Ekran görüntülerini yükle",
+        type=["png", "jpg", "jpeg"],
+        accept_multiple_files=True,
+        help="Görseller sırasıyla yerleştirilir: Sayfa 8 (üst/alt), Sayfa 9 (üst/alt), Sayfa 10 (üst/alt)",
+    )
+    if uploaded_files:
+        st.info(f"{len(uploaded_files)} görsel yüklendi ({6 - len(uploaded_files)} boş slot kaldı)")
 
 st.markdown("---")
 
