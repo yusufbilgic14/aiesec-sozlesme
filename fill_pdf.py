@@ -153,7 +153,8 @@ def _clear_screenshots(doc):
 def _fill_page1_paragraph(doc, data, has_regular, has_bold):
     """White out the entire intro paragraph on page 1."""
     page = doc[0]
-    paragraph_rect = fitz.Rect(43.2, 148, 557, 198)
+    # Covers all 6 lines: y=133.9 to y=206.8
+    paragraph_rect = fitz.Rect(43.2, 133, 557, 220)
     page.add_redact_annot(paragraph_rect, fill=(1, 1, 1))
 
 
@@ -173,15 +174,18 @@ def _fill_page1_text(doc, data, has_regular, has_bold):
     soyad = data.get("soyad", "")
 
     paragraph = (
+        "İKTİSADİ VE TİCARİ İLİMLER TALEBELERİ STAJ KOMİTESİ DERNEĞİ adına hareket eden "
+        f"Derneğin İstanbul Asya Şubesi (Bundan böyle \"AIESEC Türkiye\" olarak anılacaktır.) ile, diğer tarafta, "
         f"{tc} TC kimlik numaralı, {adres} adresinde "
         f"mukim, {eposta} elektronik posta adresi olan, {dogum} doğum tarihli, "
-        f"{ad} {soyad} (bundan böyle Değişim Katılımcısı olarak anılacaktır),"
+        f"{ad} {soyad} (bundan böyle Değişim Katılımcısı olarak anılacaktır), karşılıklı mutabakat içerisinde aşağıda yer "
+        "alan sözleşme maddeleri hususunda anlaşmışlardır."
     )
 
     fontname = "TNR" if has_regular else "helv"
 
     # Use textbox for automatic wrapping
-    text_rect = fitz.Rect(43.2, 148, 557, 230)
+    text_rect = fitz.Rect(43.2, 133, 557, 250)
     page.insert_textbox(
         text_rect,
         paragraph,
