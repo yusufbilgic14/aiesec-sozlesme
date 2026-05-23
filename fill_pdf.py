@@ -4,10 +4,10 @@ import os
 TEMPLATE_PATH = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__))), "taslak_sözleşme.pdf")
 
 FONT_SEARCH_PATHS = [
+    os.path.dirname(os.path.abspath(__file__)),
     "/System/Library/Fonts/Supplemental",
     "/usr/share/fonts/truetype/msttcorefonts",
     "/usr/share/fonts/truetype/liberation",
-    ".",
 ]
 
 
@@ -19,8 +19,8 @@ def _find_font(name):
     return None
 
 
-FONT_REGULAR = _find_font("Times New Roman.ttf") or _find_font("LiberationSerif-Regular.ttf") or _find_font("times.ttf")
-FONT_BOLD = _find_font("Times New Roman Bold.ttf") or _find_font("LiberationSerif-Bold.ttf") or _find_font("timesbd.ttf")
+FONT_REGULAR = _find_font("TimesNewRoman.ttf") or _find_font("Times New Roman.ttf") or _find_font("LiberationSerif-Regular.ttf") or _find_font("times.ttf")
+FONT_BOLD = _find_font("TimesNewRomanBold.ttf") or _find_font("Times New Roman Bold.ttf") or _find_font("LiberationSerif-Bold.ttf") or _find_font("timesbd.ttf")
 
 REPLACEMENTS = [
     (0, "39931582910", "tc_kimlik", False),
