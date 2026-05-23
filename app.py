@@ -94,6 +94,7 @@ if st.button("📝 Sözleşme Oluştur", type="primary", use_container_width=Tru
                 "ulke": ulke.strip(),
                 "baslangic_tarihi": baslangic_tarihi.strip(),
                 "bitis_tarihi": bitis_tarihi.strip(),
+                "tarih_araligi": f"[{baslangic_tarihi.strip()}]- [{bitis_tarihi.strip()}]",
                 "proje_ucreti": f"({proje_ucreti_tutar}) {proje_ucreti_para.strip()}",
                 "danismanlik_ucreti": str(danismanlik_ucreti),
                 "danismanlik_ucreti_yazi": danismanlik_ucreti_yazi.strip(),
