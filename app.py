@@ -34,9 +34,14 @@ with st.expander("🌍 Program Bilgileri", expanded=True):
         bitis_tarihi = st.text_input("Bitiş Tarihi *", placeholder="DD/MM/YYYY")
     col3, col4 = st.columns(2)
     with col3:
-        tutar = st.number_input("Tutar *", min_value=0)
+        proje_ucreti_tutar = st.number_input("Karşı Şubenin Proje Ücreti (Tutar) *", min_value=0)
     with col4:
-        para_birimi = st.text_input("Para Birimi *", help="ör: EGP, USD, EUR")
+        proje_ucreti_para = st.text_input("Karşı Şubenin Proje Ücreti (Para Birimi) *", help="ör: EGP, USD, EUR")
+    col5, col6 = st.columns(2)
+    with col5:
+        danismanlik_ucreti = st.number_input("Danışmanlık Ücreti *", min_value=0)
+    with col6:
+        danismanlik_ucreti_yazi = st.text_input("Danışmanlık Ücreti (Yazıyla) *", help="ör: altıbindokuyüzotuz")
     sozlesme_tarihi = st.text_input("Sözleşme Tarihi *", placeholder="DD/MM/YYYY")
 
 with st.expander("📸 Ekran Görüntüleri", expanded=False):
@@ -63,10 +68,18 @@ if st.button("📝 Sözleşme Oluştur", type="primary", use_container_width=Tru
         "Program Ülkesi": ulke,
         "Başlangıç Tarihi": baslangic_tarihi,
         "Bitiş Tarihi": bitis_tarihi,
-        "Para Birimi": para_birimi,
+        "Karşı Şubenin Proje Ücreti (Tutar)": proje_ucreti_tutar,
+        "Karşı Şubenin Proje Ücreti (Para Birimi)": proje_ucreti_para,
+        "Danışmanlık Ücreti": danismanlik_ucreti,
+        "Danışmanlık Ücreti (Yazıyla)": danismanlik_ucreti_yazi,
         "Sözleşme Tarihi": sozlesme_tarihi,
     }
-    missing = [k for k, v in required.items() if not v.strip()]
+    missing = []
+    for k, v in required.items():
+        if isinstance(v, str) and not v.strip():
+            missing.append(k)
+        elif isinstance(v, (int, float)) and v == 0:
+            pass  # 0 is valid for number inputs
     if missing:
         st.error(f"Lütfen şu alanları doldurun: {', '.join(missing)}")
     else:
@@ -81,7 +94,10 @@ if st.button("📝 Sözleşme Oluştur", type="primary", use_container_width=Tru
                 "ulke": ulke.strip(),
                 "baslangic_tarihi": baslangic_tarihi.strip(),
                 "bitis_tarihi": bitis_tarihi.strip(),
-                "odeme_bilgisi": f"({tutar}) {para_birimi.strip()}",
+                "proje_ucreti": f"({proje_ucreti_tutar}) {proje_ucreti_para.strip()}",
+                "danismanlik_ucreti": str(danismanlik_ucreti),
+                "danismanlik_ucreti_yazi": danismanlik_ucreti_yazi.strip(),
+                "danismanlik_ucreti_braket": str(danismanlik_ucreti),
                 "sozlesme_tarihi": sozlesme_tarihi.strip(),
             }
 

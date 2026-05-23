@@ -32,14 +32,17 @@ REPLACEMENTS = [
     (1, "Mısır", "ulke", False),
     (1, "[01/08/2026]", "baslangic_tarihi", True),
     (1, "[29/08/2026]", "bitis_tarihi", True),
-    (2, "(3770) EGP", "odeme_bilgisi", True),
+    (2, "(3770) EGP", "proje_ucreti", True),
+    (2, "6930", "danismanlik_ucreti", True),
+    (2, "(altıbindokuyüzotuz)", "danismanlik_ucreti_yazi", False),
+    (3, "[6930]", "danismanlik_ucreti_braket", True),
     (6, "14/05/2026", "sozlesme_tarihi", True),
 ]
 
 TEXT_TRANSFORMS = {
     "baslangic_tarihi": lambda v: f"[{v}]",
     "bitis_tarihi": lambda v: f"[{v}]",
-    "odeme_bilgisi": lambda v: v,
+    "danismanlik_ucreti_braket": lambda v: f"[{v}]",
 }
 
 FONT_SIZE = 12
@@ -73,7 +76,10 @@ EXPANDED_RECTS = {
     "ulke": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
     "baslangic_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
     "bitis_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "odeme_bilgisi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "proje_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "danismanlik_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "danismanlik_ucreti_yazi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "danismanlik_ucreti_braket": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
     "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
 }
 
