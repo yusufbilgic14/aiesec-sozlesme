@@ -71,13 +71,13 @@ EXPANDED_RECTS = {
     "dogum_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
     "ad": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
     "soyad": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "ulke": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
-    "tarih_araligi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
-    "proje_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
-    "danismanlik_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
-    "danismanlik_ucreti_yazi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
-    "danismanlik_ucreti_braket": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
-    "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 3, r.y1 + 6),
+    "ulke": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
+    "tarih_araligi": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
+    "proje_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
+    "danismanlik_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
+    "danismanlik_ucreti_yazi": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
+    "danismanlik_ucreti_braket": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
+    "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
 }
 
 
@@ -237,6 +237,18 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
 
         rect = _pick_rect(areas)
 
+        # Get actual baseline from page text dict
+        baseline = rect.y1 - FONT_SIZE * 0.22
+        text_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
+        for block in text_dict.get("blocks", []):
+            if "lines" not in block:
+                continue
+            for line in block["lines"]:
+                for span in line["spans"]:
+                    if old_text in span["text"]:
+                        baseline = span["origin"][1]
+                        break
+
         expanded_rect = EXPANDED_RECTS.get(key, lambda r: r)(rect)
 
         if len(areas) > 1:
@@ -250,7 +262,7 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
         else:
             page.add_redact_annot(expanded_rect, fill=(1, 1, 1))
 
-        pending.append((page_idx, expanded_rect, rect, new_text, use_bold, key))
+        pending.append((page_idx, expanded_rect, rect, baseline, new_text, use_bold, key))
 
     for page in doc:
         page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
@@ -267,12 +279,12 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
         if has_bold:
             page.insert_font(fontname="TNRB", fontfile=FONT_BOLD)
 
-    for page_idx, expanded_rect, orig_rect, new_text, use_bold, key in pending:
+    for page_idx, expanded_rect, orig_rect, baseline, new_text, use_bold, key in pending:
         page = doc[page_idx]
         fontname = "TNRB" if (use_bold and has_bold) else ("TNR" if has_regular else "helv")
 
         x = orig_rect.x0
-        y = orig_rect.y0 + FONT_SIZE * 0.78
+        y = baseline
 
         page.insert_text(
             (x, y),
