@@ -64,17 +64,17 @@ SCREENSHOT_LAYOUT = [
 ]
 
 EXPANDED_RECTS = {
-    "tc_kimlik": lambda r: fitz.Rect(43.2, 148, 215.0, 169 + LINE_HEIGHT),
-    "adres": lambda r: fitz.Rect(220.1, 148, 557.0, 169 + LINE_HEIGHT),
-    "eposta": lambda r: fitz.Rect(86.7, 163, 352.0, 183 + LINE_HEIGHT),
-    "dogum_tarihi": lambda r: fitz.Rect(359.5, 163, 453.0, 183 + LINE_HEIGHT),
-    "ad": lambda r: fitz.Rect(498.4, 163, 557.0, 183 + LINE_HEIGHT),
-    "soyad": lambda r: fitz.Rect(43.2, 178, 156.0, 198 + LINE_HEIGHT),
-    "ulke": lambda r: fitz.Rect(228.6, 424, 312.0, 445 + LINE_HEIGHT),
-    "baslangic_tarihi": lambda r: fitz.Rect(320.7, 424, 387.0, 445 + LINE_HEIGHT),
-    "bitis_tarihi": lambda r: fitz.Rect(395.9, 424, 458.0, 445 + LINE_HEIGHT),
-    "odeme_bilgisi": lambda r: fitz.Rect(255.8, 645, 316.0, 666 + LINE_HEIGHT),
-    "sozlesme_tarihi": lambda r: fitz.Rect(267.8, 353, 322.0, 374 + LINE_HEIGHT),
+    "tc_kimlik": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "adres": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "eposta": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "dogum_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "ad": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "soyad": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "ulke": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "baslangic_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "bitis_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "odeme_bilgisi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
+    "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
 }
 
 
@@ -150,6 +150,48 @@ def _clear_screenshots(doc):
         page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
 
 
+def _fill_page1_paragraph(doc, data, has_regular, has_bold):
+    """White out the entire intro paragraph on page 1."""
+    page = doc[0]
+    paragraph_rect = fitz.Rect(43.2, 148, 557, 198)
+    page.add_redact_annot(paragraph_rect, fill=(1, 1, 1))
+
+
+def _fill_page1_text(doc, data, has_regular, has_bold):
+    """Insert the reformatted paragraph on page 1 after redaction."""
+    page = doc[0]
+    if has_regular:
+        page.insert_font(fontname="TNR", fontfile=FONT_REGULAR)
+    if has_bold:
+        page.insert_font(fontname="TNRB", fontfile=FONT_BOLD)
+
+    tc = data.get("tc_kimlik", "")
+    adres = data.get("adres", "")
+    eposta = data.get("eposta", "")
+    dogum = data.get("dogum_tarihi", "")
+    ad = data.get("ad", "")
+    soyad = data.get("soyad", "")
+
+    paragraph = (
+        f"{tc} TC kimlik numaralı, {adres} adresinde "
+        f"mukim, {eposta} elektronik posta adresi olan, {dogum} doğum tarihli, "
+        f"{ad} {soyad} (bundan böyle Değişim Katılımcısı olarak anılacaktır),"
+    )
+
+    fontname = "TNR" if has_regular else "helv"
+
+    # Use textbox for automatic wrapping
+    text_rect = fitz.Rect(43.2, 148, 557, 230)
+    page.insert_textbox(
+        text_rect,
+        paragraph,
+        fontname=fontname,
+        fontsize=FONT_SIZE,
+        color=(0, 0, 0),
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+
+
 def fill_contract(data: dict, screenshots: list = None) -> bytes:
     doc = fitz.open(TEMPLATE_PATH)
 
@@ -163,9 +205,16 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
             page.delete_annot(annot)
             annot = next_annot
 
+    # Handle page 1 specially
+    _fill_page1_paragraph(doc, data, has_regular, has_bold)
+    doc[0].apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+    _fill_page1_text(doc, data, has_regular, has_bold)
+
     pending = []
 
     for page_idx, old_text, key, use_bold in REPLACEMENTS:
+        if page_idx == 0:
+            continue  # page 1 handled above
         new_text = data.get(key, "")
         if not new_text:
             continue
@@ -181,10 +230,10 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
 
         rect = _pick_rect(areas)
 
-        for area in areas:
-            page.add_redact_annot(area, fill=(1, 1, 1))
+        expanded_rect = EXPANDED_RECTS.get(key, lambda r: r)(rect)
+        page.add_redact_annot(expanded_rect, fill=(1, 1, 1))
 
-        pending.append((page_idx, rect, new_text, use_bold, key))
+        pending.append((page_idx, expanded_rect, new_text, use_bold, key))
 
     for page in doc:
         page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
@@ -192,6 +241,8 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
     _clear_screenshots(doc)
 
     target_pages = set(item[0] for item in pending)
+    if 0 in target_pages:
+        target_pages.discard(0)
     for page_idx in target_pages:
         page = doc[page_idx]
         if has_regular:
