@@ -64,17 +64,17 @@ SCREENSHOT_LAYOUT = [
 ]
 
 EXPANDED_RECTS = {
-    "tc_kimlik": lambda r: fitz.Rect(r.x0, r.y0, 111.9, r.y1 + LINE_HEIGHT),
-    "adres": lambda r: fitz.Rect(r.x0, r.y0, 506.1, r.y1 + LINE_HEIGHT),
-    "eposta": lambda r: fitz.Rect(r.x0, r.y0, 204.6, r.y1 + LINE_HEIGHT),
-    "dogum_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 415.2, r.y1 + LINE_HEIGHT),
-    "ad": lambda r: fitz.Rect(r.x0, r.y0, 557.0, r.y1 + LINE_HEIGHT),
-    "soyad": lambda r: fitz.Rect(r.x0, r.y0, 83.2, r.y1 + LINE_HEIGHT),
-    "ulke": lambda r: fitz.Rect(r.x0, r.y0, 261.3, r.y1 + LINE_HEIGHT),
-    "baslangic_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 393.9, r.y1 + LINE_HEIGHT),
-    "bitis_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 465.1, r.y1 + LINE_HEIGHT),
-    "odeme_bilgisi": lambda r: fitz.Rect(r.x0, r.y0, 318.5, r.y1 + LINE_HEIGHT),
-    "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0, 324.8, r.y1 + LINE_HEIGHT),
+    "tc_kimlik": lambda r: fitz.Rect(43.2, 148, 215.0, 169 + LINE_HEIGHT),
+    "adres": lambda r: fitz.Rect(220.1, 148, 557.0, 169 + LINE_HEIGHT),
+    "eposta": lambda r: fitz.Rect(86.7, 163, 352.0, 183 + LINE_HEIGHT),
+    "dogum_tarihi": lambda r: fitz.Rect(359.5, 163, 453.0, 183 + LINE_HEIGHT),
+    "ad": lambda r: fitz.Rect(498.4, 163, 557.0, 183 + LINE_HEIGHT),
+    "soyad": lambda r: fitz.Rect(43.2, 178, 156.0, 198 + LINE_HEIGHT),
+    "ulke": lambda r: fitz.Rect(228.6, 424, 312.0, 445 + LINE_HEIGHT),
+    "baslangic_tarihi": lambda r: fitz.Rect(320.7, 424, 387.0, 445 + LINE_HEIGHT),
+    "bitis_tarihi": lambda r: fitz.Rect(395.9, 424, 458.0, 445 + LINE_HEIGHT),
+    "odeme_bilgisi": lambda r: fitz.Rect(255.8, 645, 316.0, 666 + LINE_HEIGHT),
+    "sozlesme_tarihi": lambda r: fitz.Rect(267.8, 353, 322.0, 374 + LINE_HEIGHT),
 }
 
 
