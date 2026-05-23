@@ -14,8 +14,8 @@ if platform.system() == "Linux":
 
 st.set_page_config(page_title="AIESEC Sözleşme Oluşturucu", page_icon="📄", layout="centered")
 
-st.title("📄 AIESEC Sözleşme Oluşturucu")
-st.markdown("Formu doldurarak Değişim Katılımcısı Sözleşmesi PDF'ini otomatik oluşturun.")
+st.title("📄 AIESEC OGV Sözleşme Oluşturucu")
+st.markdown("Formu doldurarak Değişim Katılımcısı Sözleşmesi PDF'ini otomatik oluşturun. For Asia")
 
 with st.expander("📋 Kişisel Bilgiler", expanded=True):
     tc_kimlik = st.text_input("TC Kimlik No *", max_chars=11)
