@@ -22,6 +22,24 @@ def _find_font(name):
 FONT_REGULAR = _find_font("TimesNewRoman.ttf") or _find_font("Times New Roman.ttf") or _find_font("LiberationSerif-Regular.ttf") or _find_font("times.ttf")
 FONT_BOLD = _find_font("TimesNewRomanBold.ttf") or _find_font("Times New Roman Bold.ttf") or _find_font("LiberationSerif-Bold.ttf") or _find_font("timesbd.ttf")
 
+MIN_FONT_SIZE = 5
+
+MAX_AVAILABLE_WIDTH = {
+    "tc_kimlik": 65.0,
+    "adres": 285.0,
+    "eposta": 117.0,
+    "dogum_tarihi": 58.0,
+    "ad": 57.0,
+    "soyad": 43.0,
+    "ulke": 32.0,
+    "baslangic_tarihi": 73.0,
+    "bitis_tarihi": 69.0,
+    "odeme_bilgisi": 62.0,
+    "sozlesme_tarihi": 57.0,
+}
+
+WIDTH_SAFETY_MARGIN = 0.92
+
 REPLACEMENTS = [
     (0, "39931582910", "tc_kimlik", False),
     (0, "Mehmet Akif mah. Mimar Sinan Cad. Alınteri sk. No19", "adres", False),
@@ -81,6 +99,16 @@ def _pick_rect(areas):
         return list(groups.values())[0]
 
     return groups[max(groups.keys())]
+
+
+def _fit_font_size(page, text, fontname, fontsize, max_width):
+    font = fitz.Font(fontname)
+    text_width = font.text_length(text, fontsize=fontsize)
+    if text_width <= max_width:
+        return fontsize
+    ratio = max_width / text_width
+    new_size = max(fontsize * ratio, MIN_FONT_SIZE)
+    return round(new_size, 1)
 
 
 def _insert_screenshot(page, image_bytes, rect):
@@ -169,7 +197,7 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
         for area in areas:
             page.add_redact_annot(area)
 
-        pending.append((page_idx, rect, new_text, use_bold))
+        pending.append((page_idx, rect, new_text, use_bold, key))
 
     for page in doc:
         page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
@@ -184,18 +212,29 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
         if has_bold:
             page.insert_font(fontname="TNRB", fontfile=FONT_BOLD)
 
-    for page_idx, rect, new_text, use_bold in pending:
+    for page_idx, rect, new_text, use_bold, key in pending:
         page = doc[page_idx]
         fontname = "TNRB" if (use_bold and has_bold) else ("TNR" if has_regular else "helv")
+        fontfile = FONT_BOLD if (use_bold and has_bold) else (FONT_REGULAR if has_regular else None)
+
+        max_w = MAX_AVAILABLE_WIDTH.get(key, rect.width)
+        fontsize = FONT_SIZE
+
+        if fontfile:
+            font = fitz.Font(fontfile=fontfile)
+            text_width = font.text_length(new_text, fontsize=fontsize)
+            effective_max = max_w * WIDTH_SAFETY_MARGIN
+            if text_width > effective_max:
+                fontsize = max(fontsize * effective_max / text_width, MIN_FONT_SIZE)
 
         x = rect.x0
-        y = rect.y0 + FONT_SIZE * 0.78
+        y = rect.y0 + fontsize * 0.78
 
         page.insert_text(
             (x, y),
             new_text,
             fontname=fontname,
-            fontsize=FONT_SIZE,
+            fontsize=fontsize,
             color=(0, 0, 0),
         )
 
