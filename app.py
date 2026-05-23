@@ -91,7 +91,7 @@ if st.button("📝 Sözleşme Oluştur", type="primary", use_container_width=Tru
 
             pdf_bytes = fill_contract(data, screenshots=screenshots if screenshots else None)
             st.session_state["pdf_bytes"] = pdf_bytes
-            st.session_state["pdf_name"] = f"sozlesme_{ad.strip()}_{soyad.strip()}.pdf"
+            st.session_state["pdf_name"] = f"{ad.strip()}_{soyad.strip()}_sözleşme.pdf"
             st.success("✅ Sözleşme başarıyla oluşturuldu!")
         except Exception as e:
             st.error(f"Oluşturma hatası: {e}")
