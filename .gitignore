@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+*.pdf
+!taslak_sözleşme.pdf
+.DS_Store
