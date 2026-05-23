@@ -12,10 +12,10 @@ if platform.system() == "Linux":
     except Exception:
         pass
 
-st.set_page_config(page_title="AIESEC Sözleşme Oluşturucu", page_icon="📄", layout="centered")
+st.set_page_config(page_title="ASYA Sözleşme Oluşturucu", page_icon="📄", layout="centered")
 
-st.title("📄 AIESEC OGV Sözleşme Oluşturucu")
-st.markdown("Formu doldurarak Değişim Katılımcısı Sözleşmesi PDF'ini otomatik oluşturun. For Asia")
+st.title("📄 ASYA OGV Sözleşme Oluşturucu")
+st.markdown("Formu doldurarak EP Sözleşmesi PDF'ini otomatik oluşturun. Asya için sevgiyle tasarlandı.")
 
 with st.expander("📋 Kişisel Bilgiler", expanded=True):
     tc_kimlik = st.text_input("TC Kimlik No *", max_chars=11)
