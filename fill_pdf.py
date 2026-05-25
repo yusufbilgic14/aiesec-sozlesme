@@ -41,6 +41,7 @@ REPLACEMENTS = [
 TEXT_TRANSFORMS = {
     "tarih_araligi": lambda v: v,
     "danismanlik_ucreti_braket": lambda v: f"[{v}]",
+    "danismanlik_ucreti_yazi": lambda v: f"({v})",
 }
 
 FONT_SIZE = 12
@@ -258,6 +259,23 @@ def _fill_page2_section5(doc, data, has_regular, has_bold):
         color=(0, 0, 0),
         align=fitz.TEXT_ALIGN_LEFT,
     )
+
+    if has_bold:
+        tarih_areas = page.search_for(tarih_araligi)
+        if tarih_areas:
+            for area in tarih_areas:
+                expanded = fitz.Rect(area.x0 - 1, area.y0 - 1, area.x1 + 1, area.y1 + 1)
+                page.add_redact_annot(expanded, fill=(1, 1, 1))
+            page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+            for area in tarih_areas:
+                baseline = area.y1 - FONT_SIZE * 0.22
+                page.insert_text(
+                    (area.x0, baseline),
+                    tarih_araligi,
+                    fontname="TNRB",
+                    fontsize=FONT_SIZE,
+                    color=(0, 0, 0),
+                )
 
     return True
 
