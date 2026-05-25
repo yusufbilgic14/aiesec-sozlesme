@@ -17,8 +17,8 @@ st.set_page_config(page_title="ASYA Sözleşme Oluşturucu", page_icon="📄", l
 st.markdown(
     """
     <style>
-    .stImage { margin-top: -20px; }
-    div[data-testid="stImage"] { margin-bottom: -20px; }
+    .stImage { margin-top: -40px; }
+    div[data-testid="stImage"] { margin-bottom: -40px; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -36,7 +36,7 @@ with st.expander("📋 Kişisel Bilgiler", expanded=True):
     soyad = st.text_input("Soyad (Last Name) *")
     adres = st.text_input("Adres *")
     eposta = st.text_input("E-posta *")
-    dogum_tarihi = st.text_input("Doğum Tarihi *", placeholder="DD.MM.YYYY")
+    dogum_tarihi = st.text_input("Doğum Tarihi *", placeholder="DD/MM/YYYY")
 
 with st.expander("🌍 Program Bilgileri", expanded=True):
     ulke = st.text_input("Program Ülkesi *")
