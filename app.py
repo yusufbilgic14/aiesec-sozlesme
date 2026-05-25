@@ -134,3 +134,11 @@ if "pdf_bytes" in st.session_state:
         mime="application/pdf",
         use_container_width=True,
     )
+
+st.markdown("---")
+st.markdown(
+    "<p style='text-align: center; color: #666; font-size: 14px;'>"
+    "Geliştirmeler ve feedbackler için bana istediğiniz zaman ulaşabilirsiniz. -yusuf"
+    "</p>",
+    unsafe_allow_html=True,
+)
