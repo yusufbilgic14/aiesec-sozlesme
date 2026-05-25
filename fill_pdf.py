@@ -47,6 +47,9 @@ FONT_SIZE = 12
 LINE_HEIGHT = FONT_SIZE * 1.3
 Y_TOLERANCE = 5
 
+SECTION5_START_MARKER = "Sözleşmede bahsi"
+SECTION5_END_MARKER = "kabul eder."
+
 SCREENSHOT_PAGES = [7, 8, 9]
 
 SCREENSHOT_LAYOUT = [
@@ -199,6 +202,66 @@ def _fill_page1_text(doc, data, has_regular, has_bold):
     )
 
 
+def _fill_page2_section5(doc, data, has_regular, has_bold):
+    page = doc[1]
+
+    ulke = data.get("ulke", "")
+    tarih_araligi = data.get("tarih_araligi", "")
+
+    if not ulke or not tarih_araligi:
+        return False
+
+    start_areas = page.search_for(SECTION5_START_MARKER)
+    end_areas = page.search_for(SECTION5_END_MARKER)
+
+    if not start_areas or not end_areas:
+        return False
+
+    start_rect = start_areas[0]
+    end_rect = None
+    for area in end_areas:
+        if area.y0 > start_rect.y0:
+            end_rect = area
+            break
+    if not end_rect:
+        end_rect = end_areas[-1]
+
+    x0 = start_rect.x0
+    y0 = start_rect.y0 - 3
+    x1 = page.rect.x1 - start_rect.x0
+    y1 = end_rect.y1 + 8
+
+    redact_rect = fitz.Rect(x0, y0, x1, y1)
+    page.add_redact_annot(redact_rect, fill=(1, 1, 1))
+    page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+
+    if has_regular:
+        page.insert_font(fontname="TNR", fontfile=FONT_REGULAR)
+    if has_bold:
+        page.insert_font(fontname="TNRB", fontfile=FONT_BOLD)
+
+    fontname = "TNR" if has_regular else "helv"
+
+    paragraph = (
+        f"Sözleşmede bahsi geçen program {ulke} ülkesinde, {tarih_araligi} tarihleri arasında "
+        f"gerçekleşecektir. Değişim Katılımcısı, programın gerçekleştirileceği tarih aralığının "
+        f"AIESEC tarafından 20 güne kadar tek taraflı değiştirilebileceğini kabul eder."
+    )
+
+    text_rect = fitz.Rect(x0, y0, x1, y1 + 30)
+
+    page.insert_textbox(
+        text_rect,
+        paragraph,
+        fontname=fontname,
+        fontsize=FONT_SIZE,
+        color=(0, 0, 0),
+        align=fitz.TEXT_ALIGN_LEFT,
+    )
+
+    return True
+
+
 def fill_contract(data: dict, screenshots: list = None) -> bytes:
     doc = fitz.open(TEMPLATE_PATH)
 
@@ -217,11 +280,15 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
     doc[0].apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
     _fill_page1_text(doc, data, has_regular, has_bold)
 
+    section5_handled = _fill_page2_section5(doc, data, has_regular, has_bold)
+
     pending = []
 
     for page_idx, old_text, key, use_bold in REPLACEMENTS:
         if page_idx == 0:
             continue  # page 1 handled above
+        if page_idx == 1 and section5_handled:
+            continue  # section 5 handled above
         new_text = data.get(key, "")
         if not new_text:
             continue
