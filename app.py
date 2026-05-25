@@ -14,9 +14,16 @@ if platform.system() == "Linux":
 
 st.set_page_config(page_title="ASYA Sözleşme Oluşturucu", page_icon="📄", layout="centered")
 
-col1, col2, col3 = st.columns([1, 3, 1])
-with col2:
-    st.image("assets/black&yellow.png", use_container_width=True)
+st.markdown(
+    """
+    <style>
+    .stImage { margin-top: -20px; }
+    div[data-testid="stImage"] { margin-bottom: -20px; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+st.image("assets/black&yellow.png", width=300)
 
 st.title("📄 ASYA OGV Sözleşme Oluşturucu")
 st.markdown("Formu doldurarak EP Sözleşmesi PDF'ini otomatik oluşturun. Asya için sevgiyle tasarlandı.")
