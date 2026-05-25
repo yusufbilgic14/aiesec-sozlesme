@@ -23,7 +23,9 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-st.image("assets/black&yellow.png", width=300)
+col1, col2, col3 = st.columns([1, 1, 1])
+with col2:
+    st.image("assets/black&yellow.png", width=300)
 
 st.title("📄 ASYA OGV Sözleşme Oluşturucu")
 st.markdown("Formu doldurarak EP Sözleşmesi PDF'ini otomatik oluşturun. Asya için sevgiyle tasarlandı.")
