@@ -241,41 +241,22 @@ def _fill_page2_section5(doc, data, has_regular, has_bold):
     if has_bold:
         page.insert_font(fontname="TNRB", fontfile=FONT_BOLD)
 
-    fontname = "TNR" if has_regular else "helv"
-
-    paragraph = (
-        f"Sözleşmede bahsi geçen program {ulke} ülkesinde, {tarih_araligi} tarihleri arasında "
-        f"gerçekleşecektir. Değişim Katılımcısı, programın gerçekleştirileceği tarih aralığının "
-        f"AIESEC tarafından 20 güne kadar tek taraflı değiştirilebileceğini kabul eder."
-    )
-
     text_rect = fitz.Rect(x0, y0, x1, y1 + 30)
 
-    page.insert_textbox(
-        text_rect,
-        paragraph,
-        fontname=fontname,
-        fontsize=FONT_SIZE,
-        color=(0, 0, 0),
-        align=fitz.TEXT_ALIGN_LEFT,
+    ulke_esc = ulke.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    tarih_esc = tarih_araligi.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    html = (
+        f'<p style="font-family:serif;font-size:{FONT_SIZE}pt;line-height:1.35;'
+        f'margin:0;padding:0;color:#000000">'
+        f"Sözleşmede bahsi geçen program {ulke_esc} ülkesinde, "
+        f"<b>{tarih_esc}</b> tarihleri arasında "
+        f"gerçekleşecektir. Değişim Katılımcısı, programın gerçekleştirileceği tarih aralığının "
+        f"AIESEC tarafından 20 güne kadar tek taraflı değiştirilebileceğini kabul eder."
+        f"</p>"
     )
 
-    if has_bold:
-        tarih_areas = page.search_for(tarih_araligi)
-        if tarih_areas:
-            for area in tarih_areas:
-                expanded = fitz.Rect(area.x0 - 1, area.y0 - 1, area.x1 + 1, area.y1 + 1)
-                page.add_redact_annot(expanded, fill=(1, 1, 1))
-            page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
-            for area in tarih_areas:
-                baseline = area.y1 - FONT_SIZE * 0.22
-                page.insert_text(
-                    (area.x0, baseline),
-                    tarih_araligi,
-                    fontname="TNRB",
-                    fontsize=FONT_SIZE,
-                    color=(0, 0, 0),
-                )
+    page.insert_htmlbox(text_rect, html)
 
     return True
 
