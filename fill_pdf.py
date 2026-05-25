@@ -251,16 +251,7 @@ def fill_contract(data: dict, screenshots: list = None) -> bytes:
 
         expanded_rect = EXPANDED_RECTS.get(key, lambda r: r)(rect)
 
-        if len(areas) > 1:
-            combined = fitz.Rect(
-                min(a.x0 for a in areas),
-                min(a.y0 for a in areas),
-                max(a.x1 for a in areas),
-                max(a.y1 for a in areas),
-            )
-            page.add_redact_annot(combined, fill=(1, 1, 1))
-        else:
-            page.add_redact_annot(expanded_rect, fill=(1, 1, 1))
+        page.add_redact_annot(expanded_rect, fill=(1, 1, 1))
 
         pending.append((page_idx, expanded_rect, rect, baseline, new_text, use_bold, key))
 
