@@ -62,7 +62,7 @@ HTML_CSS = (
 # + 16pt for the details block (line-height 2.4 adds half extra leading).
 REGIONS = [
     ("letterhead", fitz.Rect(300, 156.95, 573.9, 176)),  # top-right sender address (8.5pt, right-aligned, Liberation/Arial-metric)
-    ("visa_officer", fitz.Rect(53, 171.95, 590, 196)),  # salutation line (10pt)
+    ("visa_officer", fitz.Rect(53, 171.95, 578.9, 196)),  # salutation line (10pt, right-aligned like template)
     ("title", fitz.Rect(40, 203.85, 555, 228)),  # "Acceptance Note for <name>" (centered)
     ("para3", fitz.Rect(53, 342.55, 557, 394)),  # visa request sentence
     ("para4", fitz.Rect(53, 380.75, 557, 433)),  # confirmation + program details
@@ -102,7 +102,10 @@ def _build_regions_html(data):
             f"<b>{sirket_adresi}</b>", size=8.5, align="right",
             line_height=1.2, family="liberation"
         ),
-        "visa_officer": p(f"The Visa Officer, <b>Consulate General of the Federal Republic of {ulke}</b>"),
+        "visa_officer": p(
+            f"The Visa Officer, <b>Consulate General of the Federal Republic of {ulke}</b>",
+            align="right",
+        ),
         "title": p(f"Acceptance Note for <b>{name}</b>", align="center"),
         "para3": p(
             f"With this document, we hereby request for a visa for the period "
