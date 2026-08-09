@@ -66,21 +66,42 @@ durur (ör. `39931582910`, `[01/08/2026]- [29/08/2026]`, `(3770) EGP`). Doldurma
   ortalanmış, kenarlardan taşmadan) yerleştirilir: `SCREENSHOT_LAYOUT`'taki slot
   rect'lerine `page.insert_image`.
 
-### Acceptance Note farkları (multi-instance ve zone)
+### Acceptance Note farkları (region-based htmlbox yeniden yazımı)
 
-- Aynı yer tutucu PDF'te **birden çok satırda** geçer (ad 6 kez, ülke 4 kez, LC 2 kez) →
-  `redact_and_collect` yerine **`redact_all_instances`** kullanılır: her geçtiği yer ayrı
-  redact rect'i + ayrı baseline alır (tek-rect `_pick_rect` mantığı yalnızca en alttakini seçerdi).
-- Tarihler iki yerde geçer: birleşik `"17.07.2026- 28.08.2026 "` span'ı (vize dönemi satırı,
-  tek parça değiştirilir) ve bağımsız `17.07.2026`/`28.08.2026` span'ları (alt satırda).
-  Bağımsız olanlar **`zone` filtresi** (Rect(0,390,595,440)) ile ayrıştırılır — yoksa birleşik
-  span'ın içindeki tarihler de eşleşir ve çift redact olur.
-- Font boyutu değere göre değişir: değerler 10pt bold, adres satırı 10pt normal, antet adresi
-  8.5pt bold → pending item'a `size` alanı eklenir, `insert_pending` onu kullanır.
+AN, EP'nin sayfa-1/5. bölüm formülünü **tüm değişken bölgelerine** uygular: yer tutucu
+arıyor değil, değişken içeren her cümle bölgesini komple white-out edip cümleyi
+form verisinden baştan kurar. Böylece boşluklar her uzunluktaki girdiye uyar (eski
+karakter-karakter swap yaklaşımı bunu sağlayamıyordu — sabit şablon boşlukları ve
+uzun girdide taşma: commit 4b61906'dan vazgeçildi).
+
+- `REGIONS` listesi: 7 bölge, her biri `fitz.Rect` (şablon satır bbox'ından türetilmiş).
+  Hepsi önce tek `apply_redactions` ile silinir, sonra `page.insert_htmlbox` ile
+  `_build_regions_html(data)` HTML'i yazılır (`<b>` = native bold, commit 47220df yöntemi).
+- Bölge içeriği tamamen dinamiktir: değerler değil, **cümleler** veriden kurulur
+  (`para3`/`para4`/`para5`/`title`/`visa_officer` tamamen yeniden yazılır; `details`
+  6 satırlık blok, `letterhead` sağa hizalı antet adresi).
+- Statik bölgeler (giriş paragrafları, "Dear Sir / Madam,", "The following are his
+  details:", "Best regards,", imzalar) şablonda orijinal Calibri fontuyla bırakılır.
+- `insert_htmlbox` kendi gömülü **CharisSIL** serif fontunu kullanır (EP'nin 5. bölümü
+  de aynıdır — `insert_fonts` htmlbox'ı etkilemez, yalnızca `insert_text`/`insert_pending`
+  için gerekir). Calibri (statik) + CharisSIL (dinamik) karışımı bilinçlidir.
+- **Baseline kalibrasyonu (ampirik)**: ilk satır baseline = `rect.y0 + 1.1em`
+  (8.5pt antet için ~1.0em); `line-height` > 1.03 ise üstüne yarım ekstra leading
+  eklenir (details, lh=2.4 → +5.2pt). Details bloğu şablonun 24pt satır aralığını
+  birebir yakalar: `line-height:2.4` + `rect.y0 = ilk satır baseline - 16.25`.
+  Bölge rect'leri kaldırık değerler şablondaki kendi satırlarına oturur (Δ ≤ 0.5pt,
+  details son satırında Δ ≤ 1.6pt).
+- Rect'ler komşu statik içeriği silmemek için dar tutulmalıdır; ör. `para5` (601..638)
+  "Best regards," (üst ~642) ile 4pt pay bırakır; `details` (451.4..595) "The following
+  are his details:" (443) satırına dokunmaz. Uzun girdide htmlbox `scale_low` ile
+  otomatik küçültür (taşma olmaz — EP ile aynı davranış).
 - `insert_pending` sayfa 0'ı font embed'den hariç tutar; tek sayfalık şablonlarda font'lari
   `fill()` içinde elle `insert_fonts(doc[0], ...)` ile gömmek gerekir.
 - PyMuPDF eklenen metindeki boşlukları `\xa0`, tireyi `\xad` (soft hyphen) olarak encode eder —
   ekstraksiyonda böyle görünür ama görsel çıktı düzgündür. String karşılaştırırken normalize et.
+- Not: `fill_pdf.py`'deki `redact_all_instances`/`zone` mekanizması AN v1 (4b61906) için
+  yazıldı, artık AN tarafından kullanılmıyor; ileride bölge-bazlı olmayan belgeler için
+  motor yardımcıları olarak duruyor.
 
 ## Mimari: Belge Türü Kayıt Sistemi
 
@@ -90,7 +111,7 @@ documents/
   __init__.py          → DOCUMENT_TYPES = {d.ID: d for d in (...)} 
   base.py              → Field dataclass + DocumentType arayüzü
   ep_sozlesme.py       → EP Sözleşmesi (10 sayfa, full pipeline)
-  acceptance_note.py   → Acceptance Note (STUB — şablon bekleniyor)
+  acceptance_note.py   → Acceptance Note (tek sayfa, region-based htmlbox)
 fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screenshot)
 ```
 
@@ -119,8 +140,10 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
    - Tek satır / tek geçişli yer tutucular → `redact_and_collect` + `insert_pending` (bak:
      `EPSozlesmeDocument.fill`'deki REPLACEMENTS döngüsü). `EXPANDED_RECTS`'te her anahtar
      için minimal genişletme tanımla. Kalın yazılacaksa `use_bold=True`.
-   - Aynı değer birden çok yerde geçiyorsa → `redact_all_instances` (bak:
-     `AcceptanceNoteDocument.fill`). Alt string çakışması varsa `zone` filtresi kullan.
+   - Aynı değer birden çok yerde geçiyorsa ve cümleler baştan kurulacaksa → bölge-bazlı
+     yaklaşım (bak: `AcceptanceNoteDocument.fill`): değişken içeren bölgeleri `REGIONS`
+     rect'leriyle komple white-out edip `insert_htmlbox` ile cümleyi veriden baştan kur.
+     Bu yöntem her uzunluktaki girdiye uyar.
    - Paragraf içi değerler (tüm paragraf yeniden yazılacaksa) → marker-start/end +
      `insert_textbox` (düz) veya `insert_htmlbox` (bold gerekiyorsa).
 6. PDF'i `doc.tobytes()` ile döndür. **app.py'ye dokunma** — registry otomatik

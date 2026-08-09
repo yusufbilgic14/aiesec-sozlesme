@@ -1,30 +1,28 @@
 """Acceptance Note (visa support letter) — template "Taslak_Acceptance_Note.pdf".
 
-Single-page English letter. The GUIDE copy of the template places numbered
-markers (1-10) next to every replaceable value; that map:
+Single-page English letter. Uses the SAME filling formula as the EP contract:
 
-    1  sender / letterhead address (top right, Istanbul Asia)
-    2  target country ("Germany" — appears 4 times, incl. the Consulate
-       address line)
-    3  participant name ("Ayşenur İnce" — appears 6 times, incl. the title
-       "Acceptance Note for ...")
+- Every region containing variable values is fully redacted (white-out) and
+  then re-inserted as a complete sentence/paragraph built from the form data
+  via ``insert_htmlbox`` — exactly like EP page 1 ("insert_textbox") and EP
+  section 5 ("insert_htmlbox" for native <b> bold, commits 7b9360c/47220df).
+- Because sentences are rebuilt from the inputs, spacing around values is
+  always correct and any input length wraps naturally. Plain character-level
+  placeholder swaps are NOT used here: mid-sentence values (name, dates,
+  country, LC) would collide with the surrounding static text and leave
+  fixed template spaces behind.
+- Static regions (intro paragraphs, "Dear Sir / Madam,", closing block) are
+  left untouched in their original fonts.
+
+The GUIDE copy of the template places numbered markers (1-10) next to every
+replaceable value; that map:
+
+    1  sender / letterhead address (top right)
+    2  target country ("Germany"; incl. the Consulate address line)
+    3  participant name ("Ayşenur İnce")
     4/5  program start / end dates
-    6  host Local Committee ("AACHEN" — appears twice)
+    6  host Local Committee ("AACHEN")
     7-10  date of birth / passport number / date of issue / date of expiry
-
-Implementation notes:
-
-- Values are bold Calibri 10pt; the participant address line is regular 10pt;
-  the letterhead address is Arial-BoldMT 8.5pt. We render replacements with the
-  bundled Times New Roman (regular / bold) at the matching size, on the exact
-  extracted baseline.
-- Repeated placeholders (name, country, LC) are handled with
-  ``redact_all_instances`` — each occurrence gets its own redaction, because
-  "single lowest rect" would replace only one of them.
-- The dates exist twice: combined span "17.07.2026- 28.08.2026 " (visa period
-  line) and standalone spans on the "starting on ... ending ..." line. The
-  combined span is replaced as one piece; the standalone ones are disambiguated
-  with a y-zone filter.
 """
 import os
 
@@ -37,8 +35,6 @@ from fill_pdf import (
     clear_annotations,
     font_available,
     insert_fonts,
-    insert_pending,
-    redact_all_instances,
 )
 from .base import DocumentType, Field
 
@@ -47,48 +43,77 @@ TEMPLATE_PATH = os.path.join(
     "Taslak_Acceptance_Note.pdf",
 )
 
-# Standalone program dates sit at y~411; the combined visa-period span (also
-# containing both dates) sits at y~346 and must NOT be matched here.
-ZONE_STANDALONE_DATES = fitz.Rect(0, 390, 595, 440)
-
-
-def _expand_tight(r):
-    """Minimal expansion for short inline values (dates, LC, passport...)."""
-    return fitz.Rect(r.x0 - 0.5, r.y0 - 1, r.x1 + 1.5, r.y1 + 1.5)
-
-
-def _expand_name(r):
-    """Name sits inline with surrounding punctuation (commas); keep it tight."""
-    return fitz.Rect(r.x0 - 0.5, r.y0 - 1, r.x1 + 3, r.y1 + 1.5)
-
-
-def _expand_address(r):
-    """Participant address line: room for longer addresses to the right."""
-    return fitz.Rect(r.x0 - 0.5, r.y0 - 1, r.x1 + 160, r.y1 + 1.5)
-
-
-def _expand_letterhead(r):
-    """Top-right letterhead address: room for longer addresses to the right."""
-    return fitz.Rect(r.x0 - 0.5, r.y0 - 1, r.x1 + 60, r.y1 + 1.5)
-
-
-# (placeholder text in template, data key, use_bold, expand_fn, zone, size)
-REPLACEMENTS = [
-    ("Ayşenur İnce", "name", True, _expand_name, None, 10.0),
-    ("Germany", "ulke", True, _expand_tight, None, 10.0),
-    ("AACHEN", "host_lc", True, _expand_tight, None, 10.0),
-    ("17.07.2026- 28.08.2026 ", "tarih_araligi", True, _expand_tight, None, 10.0),
-    ("17.07.2026", "baslangic_tarihi", True, _expand_tight, ZONE_STANDALONE_DATES, 10.0),
-    ("28.08.2026", "bitis_tarihi", True, _expand_tight, ZONE_STANDALONE_DATES, 10.0),
-    ("30.07.1998", "dogum_tarihi", True, _expand_tight, None, 10.0),
-    ("U35237737", "pasaport_no", True, _expand_tight, None, 10.0),
-    ("18.11.2022", "duzenlenme_tarihi", True, _expand_tight, None, 10.0),
-    ("18.11.2032", "gecerlilik_tarihi", True, _expand_tight, None, 10.0),
-    ("Bostancı mah. İpekçi sok. Pırlanta Apt. No:1-3 Daire:11 Kadıköy/İstanbul",
-     "adres", False, _expand_address, None, 10.0),
-    ("Gümüşsuyu, İnönü Cd. No:10, 34437 Beyoğlu/İstanbul",
-     "sirket_adresi", True, _expand_letterhead, None, 8.5),
+# Every region whose OLD text must be blanked out, and into which the rebuilt
+# content is inserted. Region tops/bottoms are derived from the template line
+# positions (bbox.y0 - 3, the same anchor rule EP uses for its section 5).
+REGIONS = [
+    ("letterhead", fitz.Rect(300, 156.6, 584, 176)),  # top-right sender address (8.5pt, right-aligned)
+    ("visa_officer", fitz.Rect(40, 172, 590, 196)),  # salutation line (10pt)
+    ("title", fitz.Rect(40, 204, 555, 228)),  # "Acceptance Note for <name>" (centered)
+    ("para3", fitz.Rect(43, 343, 557, 394)),  # visa request sentence
+    ("para4", fitz.Rect(43, 380.5, 557, 433)),  # confirmation + program details
+    ("details", fitz.Rect(43, 451.4, 557, 595)),  # "The following are his details:" block
+    ("para5", fitz.Rect(43, 601, 557, 638)),  # bottom paragraph (contains name)
 ]
+
+LEADING = "font-family:serif;line-height:1.35;margin:0;padding:0;color:#000000"
+
+
+def _esc(s):
+    """Escape user data entering the htmlbox (commits 47220df pitfall)."""
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _build_regions_html(data):
+    name = _esc(data["name"])
+    ulke = _esc(data["ulke"])
+    lc = _esc(data["host_lc"])
+    start = _esc(data["baslangic_tarihi"])
+    end = _esc(data["bitis_tarihi"])
+    adres = _esc(data["adres"])
+    dogum = _esc(data["dogum_tarihi"])
+    pasaport = _esc(data["pasaport_no"])
+    duzenlenme = _esc(data["duzenlenme_tarihi"])
+    gecerlilik = _esc(data["gecerlilik_tarihi"])
+    sirket_adresi = _esc(data["sirket_adresi"])
+
+    def p(body, size=10, align="left", line_height=1.35):
+        return (
+            f'<p style="{LEADING};font-size:{size}pt;line-height:{line_height};'
+            f'text-align:{align}">{body}</p>'
+        )
+
+    return {
+        "letterhead": p(f"<b>{sirket_adresi}</b>", size=8.5, align="right", line_height=1.2),
+        "visa_officer": p(f"The Visa Officer, <b>Consulate General of the Federal Republic of {ulke}</b>"),
+        "title": p(f"Acceptance Note for <b>{name}</b>", align="center"),
+        "para3": p(
+            f"With this document, we hereby request for a visa for the period "
+            f"<b>{start}- {end}</b> for Ms. <b>{name}</b>, She will be taking part "
+            f"in a project in <b>{ulke}</b> in Local Committee <b>{lc}</b> for the "
+            f"above said period."
+        ),
+        "para4": p(
+            f"With this letter, AIESEC Istanbul Asia confirmed that <b>{name}</b>, who has "
+            f"been selected by <b>{lc}</b>, <b>{ulke}</b> as a part of our Global Volunteer "
+            f"Program. <b>{name}</b> is going to take a traineeship project in <b>{ulke}</b> "
+            f"starting on <b>{start}</b> ending <b>{end}</b> for a maximum period of "
+            f"2 months."
+        ),
+        "details": "".join([
+            p(f"Name (as in passport): <b>{name}</b>", line_height=2.4),
+            p(f"Address: {adres}", line_height=2.4),
+            p(f"Date of Birth: <b>{dogum}</b>", line_height=2.4),
+            p(f"Passport Number: <b>{pasaport}</b>", line_height=2.4),
+            p(f"Date of Issue: <b>{duzenlenme}</b>", line_height=2.4),
+            p(f"Date of Expiry: <b>{gecerlilik}</b>", line_height=2.4),
+        ]),
+        "para5": p(
+            f"AIESEC is the world's largest youth-run organization present in 112 countries "
+            f"and <b>{name}</b> has been selected for the volunteer position. Throughout the "
+            f"project, the AIESEC association is undertaking to assure accommodation."
+        ),
+    }
 
 
 class AcceptanceNoteDocument(DocumentType):
@@ -125,7 +150,6 @@ class AcceptanceNoteDocument(DocumentType):
             "host_lc": form["host_lc"].strip(),
             "baslangic_tarihi": baslangic,
             "bitis_tarihi": bitis,
-            "tarih_araligi": f"{baslangic}- {bitis} ",
             "adres": form["adres"].strip(),
             "dogum_tarihi": form["dogum_tarihi"].strip(),
             "pasaport_no": form["pasaport_no"].strip(),
@@ -139,29 +163,24 @@ class AcceptanceNoteDocument(DocumentType):
 
     def fill(self, data, screenshots=None):
         doc = fitz.open(TEMPLATE_PATH)
+        page = doc[0]
 
         has_regular = font_available(FONT_REGULAR)
         has_bold = font_available(FONT_BOLD)
 
         clear_annotations(doc)
 
-        pending = []
-        for old_text, key, use_bold, expand_fn, zone, size in REPLACEMENTS:
-            new_text = data.get(key, "")
-            if not new_text:
-                continue
-            items = redact_all_instances(
-                doc, 0, old_text, new_text, use_bold, expand_fn, zone, size
-            )
-            pending.extend(items)
-
+        # 1) White out every dynamic region (EP page-1/section-5 style)
+        for _name, rect in REGIONS:
+            page.add_redact_annot(rect, fill=(1, 1, 1))
         apply_redactions(doc)
 
-        # Page 0 is skipped by insert_pending's font embedding; this single-page
-        # template needs its fonts embedded explicitly.
-        insert_fonts(doc[0], has_regular, has_bold)
+        # 2) Embed the bundled fonts, then rebuild each region from the data
+        insert_fonts(page, has_regular, has_bold)
 
-        insert_pending(doc, pending, has_regular, has_bold)
+        html = _build_regions_html(data)
+        for name, rect in REGIONS:
+            page.insert_htmlbox(rect, html[name])
 
         pdf_bytes = doc.tobytes()
         doc.close()
