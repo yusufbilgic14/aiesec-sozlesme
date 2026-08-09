@@ -43,20 +43,34 @@ TEMPLATE_PATH = os.path.join(
     "Taslak_Acceptance_Note.pdf",
 )
 
+# Calibri is metric-compatible with the free, OFL-licensed Carlito font.
+# insert_htmlbox normally renders its built-in CharisSIL serif; passing an
+# Archive + @font-face CSS makes it use Carlito-Regular/Bold at exact sizes,
+# so line breaks and glyph metrics match the template's Calibri layout.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CARLITO_ARCHIVE = fitz.Archive(ROOT)
+HTML_CSS = (
+    "@font-face{font-family:carlito;src:url(Carlito-Regular.ttf)}"
+    "@font-face{font-family:carlito;font-weight:bold;src:url(Carlito-Bold.ttf)}"
+    "@font-face{font-family:liberation;src:url(LiberationSans-Regular.ttf)}"
+    "@font-face{font-family:liberation;font-weight:bold;src:url(LiberationSans-Bold.ttf)}"
+)
+
 # Every region whose OLD text must be blanked out, and into which the rebuilt
-# content is inserted. Region tops/bottoms are derived from the template line
-# positions (bbox.y0 - 3, the same anchor rule EP uses for its section 5).
+# content is inserted. Region tops are calibrated for Carlito: first-line
+# baseline = rect.y0 + 10.75pt (10pt), + 8.65pt (8.5pt letterhead), and
+# + 16pt for the details block (line-height 2.4 adds half extra leading).
 REGIONS = [
-    ("letterhead", fitz.Rect(300, 156.6, 584, 176)),  # top-right sender address (8.5pt, right-aligned)
-    ("visa_officer", fitz.Rect(40, 172, 590, 196)),  # salutation line (10pt)
-    ("title", fitz.Rect(40, 204, 555, 228)),  # "Acceptance Note for <name>" (centered)
-    ("para3", fitz.Rect(43, 343, 557, 394)),  # visa request sentence
-    ("para4", fitz.Rect(43, 380.5, 557, 433)),  # confirmation + program details
-    ("details", fitz.Rect(43, 451.4, 557, 595)),  # "The following are his details:" block
-    ("para5", fitz.Rect(43, 601, 557, 638)),  # bottom paragraph (contains name)
+    ("letterhead", fitz.Rect(300, 156.95, 573.9, 176)),  # top-right sender address (8.5pt, right-aligned, Liberation/Arial-metric)
+    ("visa_officer", fitz.Rect(53, 171.95, 590, 196)),  # salutation line (10pt)
+    ("title", fitz.Rect(40, 203.85, 555, 228)),  # "Acceptance Note for <name>" (centered)
+    ("para3", fitz.Rect(53, 342.55, 557, 394)),  # visa request sentence
+    ("para4", fitz.Rect(53, 380.75, 557, 433)),  # confirmation + program details
+    ("details", fitz.Rect(53, 451.7, 557, 597)),  # "The following are his details:" block
+    ("para5", fitz.Rect(53, 601.25, 557, 638)),  # bottom paragraph (contains name)
 ]
 
-LEADING = "font-family:serif;line-height:1.35;margin:0;padding:0;color:#000000"
+LEADING = "font-family:carlito;margin:0;padding:0;color:#000000"
 
 
 def _esc(s):
@@ -77,14 +91,17 @@ def _build_regions_html(data):
     gecerlilik = _esc(data["gecerlilik_tarihi"])
     sirket_adresi = _esc(data["sirket_adresi"])
 
-    def p(body, size=10, align="left", line_height=1.35):
+    def p(body, size=10, align="left", line_height=1.35, family="carlito"):
         return (
-            f'<p style="{LEADING};font-size:{size}pt;line-height:{line_height};'
-            f'text-align:{align}">{body}</p>'
+            f'<p style="{LEADING};font-family:{family};font-size:{size}pt;'
+            f'line-height:{line_height};text-align:{align}">{body}</p>'
         )
 
     return {
-        "letterhead": p(f"<b>{sirket_adresi}</b>", size=8.5, align="right", line_height=1.2),
+        "letterhead": p(
+            f"<b>{sirket_adresi}</b>", size=8.5, align="right",
+            line_height=1.2, family="liberation"
+        ),
         "visa_officer": p(f"The Visa Officer, <b>Consulate General of the Federal Republic of {ulke}</b>"),
         "title": p(f"Acceptance Note for <b>{name}</b>", align="center"),
         "para3": p(
@@ -180,7 +197,7 @@ class AcceptanceNoteDocument(DocumentType):
 
         html = _build_regions_html(data)
         for name, rect in REGIONS:
-            page.insert_htmlbox(rect, html[name])
+            page.insert_htmlbox(rect, html[name], css=HTML_CSS, archive=CARLITO_ARCHIVE)
 
         pdf_bytes = doc.tobytes()
         doc.close()

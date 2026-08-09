@@ -23,6 +23,11 @@ ekleneceğini kalıcı olarak hatırlamak için yazıldı.
   7-10 doğum tarihi / pasaport no / düzenlenme / geçerlilik tarihi.
 - **setup_fonts.sh** — Linux (Streamlit Cloud) üzerinde uygulama başlarken Times New
   Roman benzeri fontları kurar. `app.py` bunu `platform.system() == "Linux"` ise çalıştırır.
+- **Fontlar**: `TimesNewRoman.ttf`/`TimesNewRomanBold.ttf` (EP, `insert_text` için),
+  `Carlito-Regular.ttf`/`Carlito-Bold.ttf` (Calibri metrik-uyumlu, OFL; AN'nin dinamik
+  metni — `insert_htmlbox` @font-face ile; `liga` özellikleri PUA arama/kopyalama bozmasın
+  diye fontTools ile söküldü), `LiberationSans-Regular.ttf`/`LiberationSans-Bold.ttf`
+  (Arial metrik-uyumlu; AN antet satırı şablondaki Arial-BoldMT'yi birebir verir).
 - **assets/black&yellow.png** — üstteki logo.
 
 ## PDF Doldurma Tekniği (çekirdek fikir)
@@ -82,17 +87,20 @@ uzun girdide taşma: commit 4b61906'dan vazgeçildi).
   6 satırlık blok, `letterhead` sağa hizalı antet adresi).
 - Statik bölgeler (giriş paragrafları, "Dear Sir / Madam,", "The following are his
   details:", "Best regards,", imzalar) şablonda orijinal Calibri fontuyla bırakılır.
-- `insert_htmlbox` kendi gömülü **CharisSIL** serif fontunu kullanır (EP'nin 5. bölümü
-  de aynıdır — `insert_fonts` htmlbox'ı etkilemez, yalnızca `insert_text`/`insert_pending`
-  için gerekir). Calibri (statik) + CharisSIL (dinamik) karışımı bilinçlidir.
-- **Baseline kalibrasyonu (ampirik)**: ilk satır baseline = `rect.y0 + 1.1em`
-  (8.5pt antet için ~1.0em); `line-height` > 1.03 ise üstüne yarım ekstra leading
-  eklenir (details, lh=2.4 → +5.2pt). Details bloğu şablonun 24pt satır aralığını
-  birebir yakalar: `line-height:2.4` + `rect.y0 = ilk satır baseline - 16.25`.
-  Bölge rect'leri kaldırık değerler şablondaki kendi satırlarına oturur (Δ ≤ 0.5pt,
-  details son satırında Δ ≤ 1.6pt).
-- Rect'ler komşu statik içeriği silmemek için dar tutulmalıdır; ör. `para5` (601..638)
-  "Best regards," (üst ~642) ile 4pt pay bırakır; `details` (451.4..595) "The following
+- `insert_htmlbox` varsayılan olarak kendi gömülü **CharisSIL** serifini kullanır. AN,
+  `fitz.Archive(repo_root)` + `@font-face` CSS'i geçerek **Carlito** (Calibri metrik-uyumlu)
+  kullandırır: `font-family:carlito` + `font-weight:bold` → Carlito-Bold. Böylece satır
+  kırpma ve glif genişlikleri şablondaki Calibri'yle birebir aynı olur. Antet satırı
+  (8.5pt, sağa hizalı) ayrıca **Liberation Sans** family'si kullanır — şablondaki
+  Arial-BoldMT metrikleri için. Calibri (statik) + Carlito (dinamik) karışımı bilinçlidir.
+- **Baseline kalibrasyonu (ampirik)**: ilk satır baseline = `rect.y0 + 10.75` (10pt Carlito)
+  veya `+ 8.65` (8.5pt); `line-height` 1.35'ten büyükse üstüne yarım ekstra leading eklenir
+  (details, lh=2.4 → ilk satır = `rect.y0 + 16.0`, pitch 24.0 = şablonun 24pt satır aralığı).
+  Gövde sol hizası da önemlidir: htmlbox metni rect.x0'tan **+1pt** içeriden başlatır;
+  şablon metni x=54'ten başladığı için rect'ler `x0=53` kullanır (ayrıca `htmlbox` her satırı
+  x=54.0'a oturtur). Bölge rect'leri bu değerlerle şablon satırlarına Δ ≤ 0.1pt oturur.
+- Rect'ler komşu statik içeriği silmemek için dar tutulmalıdır; ör. `para5` (601.25..638)
+  "Best regards," (üst ~642) ile 4pt pay bırakır; `details` (451.7..597) "The following
   are his details:" (443) satırına dokunmaz. Uzun girdide htmlbox `scale_low` ile
   otomatik küçültür (taşma olmaz — EP ile aynı davranış).
 - `insert_pending` sayfa 0'ı font embed'den hariç tutar; tek sayfalık şablonlarda font'lari
@@ -154,6 +162,9 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
 
 - Refactor sonrası EP çıktısı **piksel bazında birebir** olduğu doğrulandı (10 sayfa
   render + sayfa metinleri + dosya boyutu). Fark yalnızca PDF metadata zaman damgaları.
+- AN aynı-değer doğrulaması: şablondaki satır baseline'larıyla Δ ≤ 0.1pt, x0=54.0 birebir,
+  font boyutları 10.0/8.5 (ölçeklenme yok); antet bbox'ı template ile ~0.2pt içinde.
+  Uzun girdide çakışma = 0 (htmlbox scale_low taşmayı zaten engeller).
 - Regresyon testi (isteğe bağlı): aynı input'la PDF üretilip
   `hashlib.sha256(pdf_bytes)` karşılaştırılabilir — dikkat: iki üretim arasında
   `creationDate`/`modDate` farklı olacağından hash aynı **olmaz**; karşılaştırma
@@ -169,6 +180,12 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
 - Linux'ta Türkçe karakterler için Times New Roman kurulumu şart (setup_fonts.sh).
 - `insert_htmlbox` kullanıcı verisi alıyorsa `& < >` escape et (özel karakterli ülke/
   tarih girdileri PDF'i bozabilir).
+- `insert_htmlbox` içerik rect'inden yüksek olursa **`scale_low` ile fontu küçültür** —
+  bölge rect'lerine marj bırak; "sizes are different" şikayetlerinin sebebi buydu.
+- htmlbox + Carlito varsayılan `liga` GSUB özelliği yüzünden "tt/ti/st/ff" çiftleri PUA
+  karakterlere dönüşür (PDF içinde arama/kopyalama bozulur). Çözüm: repo'daki Carlito
+  dosyalarından fontTools ile `liga`/`clig`/`rlig` özellikleri söküldü (şablon Calibri
+  çıktısında da ligature yoktu, böylece birebir hizalı).
 - Screenshot sayfalarında eski görüntüyü sadece redact etmek yetmez — stream'i beyaz
   JPEG ile değiştirmek gerekiyor (`clear_screenshots`).
 
