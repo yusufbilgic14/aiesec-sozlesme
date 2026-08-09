@@ -15,6 +15,12 @@ ekleneceğini kalıcı olarak hatırlamak için yazıldı.
   (font bulma, redaction, baseline, screenshot işleme).
 - **taslak_sözleşme.pdf** — EP Sözleşmesi şablonu (10 sayfa). Şekil, yer tutucu
   metinlerin PDF içinde **birebir aynı string** olarak durduğu örnek dolu bir PDF'tir.
+- **Taslak_Acceptance_Note.pdf** — Acceptance Note (visa letter) şablonu (1 sayfa, İngilizce).
+  `Taslak_Acceptance_Note with GUIDE.pdf` aynı şablonun, her değiştirilebilir değerin yanında
+  1-10 arası numaralı işaretleyicileri olan kopyasıdır (referans için; runtime'da kullanılmaz).
+  Numaralar: 1 üst sağ antet adresi, 2 ülke ("Germany", 4 kez), 3 katılımcı adı ("Ayşenur İnce",
+  6 kez), 4/5 program başlangıç/bitiş tarihleri, 6 host Local Committee ("AACHEN", 2 kez),
+  7-10 doğum tarihi / pasaport no / düzenlenme / geçerlilik tarihi.
 - **setup_fonts.sh** — Linux (Streamlit Cloud) üzerinde uygulama başlarken Times New
   Roman benzeri fontları kurar. `app.py` bunu `platform.system() == "Linux"` ise çalıştırır.
 - **assets/black&yellow.png** — üstteki logo.
@@ -60,6 +66,22 @@ durur (ör. `39931582910`, `[01/08/2026]- [29/08/2026]`, `(3770) EGP`). Doldurma
   ortalanmış, kenarlardan taşmadan) yerleştirilir: `SCREENSHOT_LAYOUT`'taki slot
   rect'lerine `page.insert_image`.
 
+### Acceptance Note farkları (multi-instance ve zone)
+
+- Aynı yer tutucu PDF'te **birden çok satırda** geçer (ad 6 kez, ülke 4 kez, LC 2 kez) →
+  `redact_and_collect` yerine **`redact_all_instances`** kullanılır: her geçtiği yer ayrı
+  redact rect'i + ayrı baseline alır (tek-rect `_pick_rect` mantığı yalnızca en alttakini seçerdi).
+- Tarihler iki yerde geçer: birleşik `"17.07.2026- 28.08.2026 "` span'ı (vize dönemi satırı,
+  tek parça değiştirilir) ve bağımsız `17.07.2026`/`28.08.2026` span'ları (alt satırda).
+  Bağımsız olanlar **`zone` filtresi** (Rect(0,390,595,440)) ile ayrıştırılır — yoksa birleşik
+  span'ın içindeki tarihler de eşleşir ve çift redact olur.
+- Font boyutu değere göre değişir: değerler 10pt bold, adres satırı 10pt normal, antet adresi
+  8.5pt bold → pending item'a `size` alanı eklenir, `insert_pending` onu kullanır.
+- `insert_pending` sayfa 0'ı font embed'den hariç tutar; tek sayfalık şablonlarda font'lari
+  `fill()` içinde elle `insert_fonts(doc[0], ...)` ile gömmek gerekir.
+- PyMuPDF eklenen metindeki boşlukları `\xa0`, tireyi `\xad` (soft hyphen) olarak encode eder —
+  ekstraksiyonda böyle görünür ama görsel çıktı düzgündür. String karşılaştırırken normalize et.
+
 ## Mimari: Belge Türü Kayıt Sistemi
 
 ```
@@ -85,22 +107,25 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
   sayfaları olan belgelerde
 - `output_filename(data)` — indirilen dosyanın adı
 
-## Yeni Belge Türü Ekleme Adımları (ör. Acceptance Note)
+## Yeni Belge Türü Ekleme Adımları
 
-1. Şablon PDF'i repo köküne bırak (ör. `taslak_acceptance_note.pdf`).
-2. `documents/acceptance_note.py` içinde: `TEMPLATE_PATH`'i doğrula, `NAME`/
-   `DESCRIPTION`'ı güncelle, `TEMPLATE_MISSING_HINT`'i kaldır.
+1. Şablon PDF'i repo köküne bırak (ör. `Taslak_Acceptance_Note.pdf`).
+2. `documents/` içinde yeni modül aç; `TEMPLATE_PATH`'i doğrula, `NAME`/`DESCRIPTION`'ı
+   tanımla.
 3. `fields()`'da form alanlarını tanımla (şablondaki yer tutucu metinlerle eşleşen).
 4. `assemble_data(form)` ile birleşik alanları kur (tarih aralığı gibi).
 5. `fill()` içinde şablonu incele ve önce **hangi yer tutucuların aynen aranabileceğini**
    (`search_for`) bul:
-   - Tek satır yer tutucular → `redact_and_collect` + `insert_pending` (bak:
+   - Tek satır / tek geçişli yer tutucular → `redact_and_collect` + `insert_pending` (bak:
      `EPSozlesmeDocument.fill`'deki REPLACEMENTS döngüsü). `EXPANDED_RECTS`'te her anahtar
      için minimal genişletme tanımla. Kalın yazılacaksa `use_bold=True`.
+   - Aynı değer birden çok yerde geçiyorsa → `redact_all_instances` (bak:
+     `AcceptanceNoteDocument.fill`). Alt string çakışması varsa `zone` filtresi kullan.
    - Paragraf içi değerler (tüm paragraf yeniden yazılacaksa) → marker-start/end +
      `insert_textbox` (düz) veya `insert_htmlbox` (bold gerekiyorsa).
 6. PDF'i `doc.tobytes()` ile döndür. **app.py'ye dokunma** — registry otomatik
-   yakalar.
+   yakalar. Şablon dosyasını `.gitignore`'daki `!` istisna satırına ekle (Streamlit
+   Cloud repo'dan deploy eder).
 
 ## Doğrulama Çalışmaları
 

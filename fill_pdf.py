@@ -124,7 +124,9 @@ def find_baseline(page, rect, old_text):
 
     Inserting at ``rect.y1 - font_size * 0.22`` is only an approximation; the
     real baseline (span origin y) keeps the replacement vertically aligned with
-    the original placeholder (commit 5614248).
+    the original placeholder (commit 5614248). When several occurrences exist,
+    only spans overlapping ``rect`` are considered so each instance gets its
+    own baseline.
     """
     baseline = rect.y1 - FONT_SIZE * 0.22
     text_dict = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
@@ -133,7 +135,7 @@ def find_baseline(page, rect, old_text):
             continue
         for line in block["lines"]:
             for span in line["spans"]:
-                if old_text in span["text"]:
+                if old_text in span["text"] and fitz.Rect(span["bbox"]).intersects(rect):
                     baseline = span["origin"][1]
                     break
     return baseline
@@ -167,6 +169,40 @@ def redact_and_collect(doc, page_idx, old_text, new_text, use_bold, expand_fn):
     }
 
 
+def redact_all_instances(doc, page_idx, old_text, new_text, use_bold, expand_fn=None,
+                         zone=None, size=None):
+    """Redact EVERY occurrence of ``old_text`` and return insert info per site.
+
+    Unlike ``redact_and_collect`` (single-lowest-rect), this handles template
+    values that repeat on several lines (e.g. "Ayşenur İnce" appears 6 times
+    in the Acceptance Note) — each occurrence gets its own redaction rect and
+    baseline.
+
+    - ``zone``: optional fitz.Rect; occurrences outside it are ignored
+      (used to disambiguate substrings that also appear inside a longer
+      placeholder, e.g. the standalone program dates).
+    - ``size``: font size for this field (template default 12pt).
+    """
+    page = doc[page_idx]
+    items = []
+    for rect in page.search_for(old_text):
+        if zone is not None and not zone.intersects(rect):
+            continue
+        baseline = find_baseline(page, rect, old_text)
+        expanded_rect = expand_fn(rect) if expand_fn else rect
+        page.add_redact_annot(expanded_rect, fill=(1, 1, 1))
+        items.append({
+            "page": page_idx,
+            "expanded_rect": expanded_rect,
+            "orig_rect": rect,
+            "baseline": baseline,
+            "text": new_text,
+            "bold": use_bold,
+            "size": size or FONT_SIZE,
+        })
+    return items
+
+
 def insert_pending(doc, pending, has_regular, has_bold):
     """After redactions are applied, write all pending texts at their baselines.
 
@@ -184,7 +220,7 @@ def insert_pending(doc, pending, has_regular, has_bold):
             (item["orig_rect"].x0, item["baseline"]),
             item["text"],
             fontname=font_name(item["bold"], has_regular, has_bold),
-            fontsize=FONT_SIZE,
+            fontsize=item.get("size", FONT_SIZE),
             color=(0, 0, 0),
         )
 

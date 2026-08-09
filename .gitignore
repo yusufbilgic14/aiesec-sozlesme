@@ -2,4 +2,6 @@ __pycache__/
 *.pyc
 *.pdf
 !taslak_sözleşme.pdf
+!Taslak_Acceptance_Note.pdf
+!Taslak_Acceptance_Note with GUIDE.pdf
 .DS_Store
