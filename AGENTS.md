@@ -85,6 +85,9 @@ uzun girdide taşma: commit 4b61906'dan vazgeçildi).
 - Bölge içeriği tamamen dinamiktir: değerler değil, **cümleler** veriden kurulur
   (`para3`/`para4`/`para5`/`title`/`visa_officer` tamamen yeniden yazılır; `details`
   6 satırlık blok, `letterhead` sağa hizalı antet adresi).
+- Hizalama şablonu **birebir** kopyalanmalı: gövde satırları sola (x=54.0), `letterhead`
+  sağa (sağ kenar 572.7) ve `visa_officer` da sağa (sağ kenar 577.7, rect x1=578.9,
+  `align="right"`) — şablonun anlık bbox'ını ölçmeden "sola hizalı" varsayma (git c94253c).
 - Statik bölgeler (giriş paragrafları, "Dear Sir / Madam,", "The following are his
   details:", "Best regards,", imzalar) şablonda orijinal Calibri fontuyla bırakılır.
 - `insert_htmlbox` varsayılan olarak kendi gömülü **CharisSIL** serifini kullanır. AN,
@@ -98,7 +101,9 @@ uzun girdide taşma: commit 4b61906'dan vazgeçildi).
   (details, lh=2.4 → ilk satır = `rect.y0 + 16.0`, pitch 24.0 = şablonun 24pt satır aralığı).
   Gövde sol hizası da önemlidir: htmlbox metni rect.x0'tan **+1pt** içeriden başlatır;
   şablon metni x=54'ten başladığı için rect'ler `x0=53` kullanır (ayrıca `htmlbox` her satırı
-  x=54.0'a oturtur). Bölge rect'leri bu değerlerle şablon satırlarına Δ ≤ 0.1pt oturur.
+  x=54.0'a oturtur). Sağa hizalı satırlar için de aynı inset geçerli: text sağ kenarı
+  rect.x1 − 1.2pt'e oturur → hedef kenar 577.7 ise rect.x1 = 578.9. Bölge rect'leri bu
+  değerlerle şablon satırlarına Δ ≤ 0.1pt oturur.
 - Rect'ler komşu statik içeriği silmemek için dar tutulmalıdır; ör. `para5` (601.25..638)
   "Best regards," (üst ~642) ile 4pt pay bırakır; `details` (451.7..597) "The following
   are his details:" (443) satırına dokunmaz. Uzun girdide htmlbox `scale_low` ile
@@ -154,9 +159,41 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
      Bu yöntem her uzunluktaki girdiye uyar.
    - Paragraf içi değerler (tüm paragraf yeniden yazılacaksa) → marker-start/end +
      `insert_textbox` (düz) veya `insert_htmlbox` (bold gerekiyorsa).
+   - `insert_htmlbox` kullanıyorsan **varsayılan CharisSIL serifini kullanma**:
+     şablonun metrik eşdeğeri fontu `fitz.Archive(repo_root)` + `@font-face` CSS'i ile
+     bağla ve font dosyalarını repo köküne koy (Calibri→`Carlito-*.ttf`,
+     Arial→`LiberationSans-*.ttf`; EP'nin TNR'si gibi gömülü değil, archive'ten).
+     Bölge rect'lerini ilk satır formülüyle (`y0 + 10.75` vb.) kalibre et — yukarıdaki
+     "Doğrulama Reçetesi" ile aynı-değer hizasını kanıtlamadan bitirme.
 6. PDF'i `doc.tobytes()` ile döndür. **app.py'ye dokunma** — registry otomatik
    yakalar. Şablon dosyasını `.gitignore`'daki `!` istisna satırına ekle (Streamlit
    Cloud repo'dan deploy eder).
+
+## Doğrulama Reçetesi (yeni belge türleri için)
+
+Bölge-bazlı (htmlbox) bir belgeyi şablonla "aynı değerlerle" doldurup şunları sırayla
+doğrula — AN'nin şu anki durumu tüm maddeleri geçiyor:
+
+1. **Baseline haritası**: Şablonun her dinamik satırının `origin[1]`'ini (get_text
+   `"dict"`) ölç; doldurulmuş çıktıda aynı satırlar Δ ≤ 0.1pt'te olmalı. İlk satır
+   formülü: `rect.y0 + 10.75` (10pt Carlito), `+ 8.65` (8.5pt), lh>1.35 ise üstüne
+   yarım ekstra leading (details lh=2.4 → `+ 16.0`).
+2. **Font boyutu tam**: Tüm eklenen span'ler `size` birebir (10.0/8.5). 9.9/9.94 gibi
+   değerler = `scale_low` tetiklenmiş → bölge rect'ini büyüt (komşu statik içeriğe
+   dokunmadan; para5/`Best regards` gibi sınırlarda ≥ 3-4pt pay bırak).
+3. **x hizası**: gövde satırları x0=54.0 birebir; sağa hizalı satırların sağ kenarı
+   şablonunkiyle birebir (inset ~1.2pt). Şablonun bbox'ını ölçmeden hizalama varsayma.
+4. **Ekstraksiyon/PUA**: Çıktı metninde U+0xE000+ (PUA) karakter olmamalı; "Officer",
+   "Letter" gibi kelimeler PDF içinde **aranabilir** olmalı. PUA çıkarsa fonttan
+   `liga`/`clig`/`rlig` sök (fontTools, repo'da yapıldı) veya ligature'sız font seç.
+5. **Uzun girdi senaryosu**: Mevcut girdilerin ~1.5-2 katı uzunluğunda isim/ülke/LC/
+   adres dene; eklenen span'lerin `fitz.Rect.intersects()` statik span taraması = 0
+   olmalı (boş intersection'lara dikkat: `&` yerine `intersects` kullan).
+6. **Çift boşluk taraması**: `get_text()` çıktısında `  ` (çift boşluk) olmamalı — ama
+   span bazlı echo script'leri span'ları `'  '` ile birleştirerek yanlış pozitif
+   üretir; `get_text()` düz metniyle kontrol et.
+7. **EP regresyonu**: `documents/`'ta EP dosyalarına dokunulmadıysa atlanabilir;
+   dokunulduysa sayfa metin hash'leri karşılaştır (metadata hash değil).
 
 ## Doğrulama Çalışmaları
 
