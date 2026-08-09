@@ -1,2 +1,2 @@
-dependencies:
-  - requirements.txt
+# Streamlit Cloud extra dependencies are managed via requirements.txt
+# in the repo root (installed automatically on deploy).
