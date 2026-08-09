@@ -11,6 +11,8 @@ ekleneceğini kalıcı olarak hatırlamak için yazıldı.
   indirme de generic'tir.
 - **documents/** — belge türleri. Her PDF bir `DocumentType` alt sınıfıdır ve
   `documents/__init__.py` içindeki `DOCUMENT_TYPES` registry'sine kayıtlıdır.
+  `documents/embassies.py` belge türü DEĞİLDİR — AN'nin ülke→temsilcilik veritabanıdır
+  (registry'de yok).
 - **fill_pdf.py** — tüm belge türlerinin kullandığı düşük seviye PDF motoru
   (font bulma, redaction, baseline, screenshot işleme).
 - **taslak_sözleşme.pdf** — EP Sözleşmesi şablonu (10 sayfa). Şekil, yer tutucu
@@ -85,6 +87,17 @@ uzun girdide taşma: commit 4b61906'dan vazgeçildi).
 - Bölge içeriği tamamen dinamiktir: değerler değil, **cümleler** veriden kurulur
   (`para3`/`para4`/`para5`/`title`/`visa_officer` tamamen yeniden yazılır; `details`
   6 satırlık blok, `letterhead` sağa hizalı antet adresi).
+- **Antet adresi = temsilcilik adresi** (şube adresi değil!): kullanıcı ülkeyi (`ulke`,
+  kind="select", İngilizce ülke adları — mektup gövdesinde aynen kullanıldığı için),
+  ülkede birden fazla temsilcilik varsa şehri (`sehir`, depends_on="ulke") seçer.
+  `documents/embassies.py` → `MISSIONS` veritabanı: ülke → misyon listesi (`label` UI
+  etiketi, `title` hitap satırındaki resmi ad, `address` antete giden adres).
+  `assemble_data` misyonu `sirket_adresi` + `mission_title` anahtarlarına çözer;
+  `visa_officer` satırı "The Visa Officer, <b>{mission_title}</b>" olur (şablonun sabit
+  "Consulate General of the Federal Republic of Germany" yazısı yerine her temsilciliğin
+  resmi adı). Adresler ~65 karakteri geçmemeli (8.5pt antet satırı rect'ine scale_low
+  tetiklenmeden sığsın). Adresler resmi kaynaklardan doğrulandı (Ağu 2026) — değişiklik
+  yaparken kaynağı teyit et.
 - Hizalama şablonu **birebir** kopyalanmalı: gövde satırları sola (x=54.0), `letterhead`
   sağa (sağ kenar 572.7) ve `visa_officer` da sağa (sağ kenar 577.7, rect x1=578.9,
   `align="right"`) — şablonun anlık bbox'ını ölçmeden "sola hizalı" varsayma (git c94253c).
@@ -125,17 +138,23 @@ documents/
   base.py              → Field dataclass + DocumentType arayüzü
   ep_sozlesme.py       → EP Sözleşmesi (10 sayfa, full pipeline)
   acceptance_note.py   → Acceptance Note (tek sayfa, region-based htmlbox)
+  embassies.py         → ülke → misyon veritabanı (registry'de YOK)
 fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screenshot)
 ```
 
 `DocumentType` arayüzü:
 - `ID / NAME / DESCRIPTION` — registry key'i ve UI etiketi
 - `TEMPLATE_PATH` + `template_available()` — şablon kontrolü; yoksa UI uyarı verir
-- `fields() -> List[Field]` — form; `Field(key, label, kind="text"|"number", required,
-  placeholder, help, max_chars, half)`; `half=True` olan alanlar bir sonraki half alanla
-  yan yana 2 sütunda render edilir
+- `fields() -> List[Field]` — form; `Field(key, label, kind="text"|"number"|"select",
+  required, placeholder, help, max_chars, half, options, depends_on)`; `half=True` olan
+  alanlar bir sonraki half alanla yan yana 2 sütunda render edilir; `kind="select"` →
+  `st.selectbox` (statik `options` ya da `depends_on` ile kademeli: şehir gibi); tek
+  seçenek kalan bağımlı selectbox UI'da render edilmez (değeri otomatik doldurulur)
+- `field_options(key, parent_value)` — bağımlı selectlerin seçenek listesi; varsayılan
+  `Field.options`'ı döner, kademeli alanlarda override edilir (bak: AN `sehir`)
 - `assemble_data(form)` — ham form değerlerini `fill()`'in beklediği anahtarlara çevirir
-  (ör. `tarih_araligi = f"[{baslangic}]- [{bitis}]"` birleştirmeleri)
+  (ör. `tarih_araligi = f"[{baslangic}]- [{bitis}]"` birleştirmeleri, AN'de misyon
+  çözümlemesi)
 - `fill(data, screenshots) -> bytes` — PDF üretimi
 - `supports_screenshots() / screenshot_layout() / screenshot_slot_count()` — görsel
   sayfaları olan belgelerde
@@ -147,6 +166,9 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
 2. `documents/` içinde yeni modül aç; `TEMPLATE_PATH`'i doğrula, `NAME`/`DESCRIPTION`'ı
    tanımla.
 3. `fields()`'da form alanlarını tanımla (şablondaki yer tutucu metinlerle eşleşen).
+   Açılır liste gerekiyorsa `kind="select"` + `options=`; ülke→şehir gibi kademeli
+   seçimde ikinci alana `depends_on` ver ve `field_options(key, parent_value)`'yu
+   override et (bak: AN `ulke`/`sehir` + `documents/embassies.py`).
 4. `assemble_data(form)` ile birleşik alanları kur (tarih aralığı gibi).
 5. `fill()` içinde şablonu incele ve önce **hangi yer tutucuların aynen aranabileceğini**
    (`search_for`) bul:

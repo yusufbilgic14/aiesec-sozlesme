@@ -16,12 +16,14 @@ class Field:
 
     key: str
     label: str
-    kind: str = "text"  # "text" | "number"
+    kind: str = "text"  # "text" | "number" | "select"
     required: bool = True
     placeholder: str = ""
     help: str = ""
     max_chars: int = 0
     half: bool = False  # renders paired with the next half field in a 2-col row
+    options: tuple = ()  # "select" fields: static option list
+    depends_on: str = ""  # "select" fields: key of the field this one cascades from
 
 
 class DocumentType:
@@ -41,6 +43,19 @@ class DocumentType:
 
     def required_keys(self) -> List[str]:
         return [f.key for f in self.fields() if f.required]
+
+    def field_options(self, key: str, parent_value: Optional[str] = None) -> List[str]:
+        """Options for a "select" field.
+
+        ``key`` is the field's key; ``parent_value`` is the current value of
+        the field named by ``depends_on`` (for cascading dropdowns). The
+        default just returns the static ``options``; document types with
+        dependent selects override this (see AcceptanceNoteDocument).
+        """
+        for f in self.fields():
+            if f.key == key:
+                return list(f.options)
+        return []
 
     def assemble_data(self, form: Dict[str, Any]) -> Dict[str, Any]:
         """Map raw form values to the keys expected by ``fill``."""

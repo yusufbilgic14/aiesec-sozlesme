@@ -37,6 +37,7 @@ from fill_pdf import (
     insert_fonts,
 )
 from .base import DocumentType, Field
+from .embassies import COUNTRY_OPTIONS, mission_for, missions_for
 
 TEMPLATE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -90,6 +91,7 @@ def _build_regions_html(data):
     duzenlenme = _esc(data["duzenlenme_tarihi"])
     gecerlilik = _esc(data["gecerlilik_tarihi"])
     sirket_adresi = _esc(data["sirket_adresi"])
+    misyon = _esc(data["mission_title"])
 
     def p(body, size=10, align="left", line_height=1.35, family="carlito"):
         return (
@@ -103,7 +105,7 @@ def _build_regions_html(data):
             line_height=1.2, family="liberation"
         ),
         "visa_officer": p(
-            f"The Visa Officer, <b>Consulate General of the Federal Republic of {ulke}</b>",
+            f"The Visa Officer, <b>{misyon}</b>",
             align="right",
         ),
         "title": p(f"Acceptance Note for <b>{name}</b>", align="center"),
@@ -149,7 +151,20 @@ class AcceptanceNoteDocument(DocumentType):
     def fields(self):
         return [
             Field("name", "Ad Soyad (pasaporttaki haliyle) *", help="ör: Ayşenur İnce"),
-            Field("ulke", "Program Ülkesi *", help="Şablondaki 'Germany' yazan tüm yerler değişir"),
+            Field(
+                "ulke",
+                "Program Ülkesi (vize başvurusu yapılacak ülke) *",
+                kind="select",
+                options=COUNTRY_OPTIONS,
+                help="Seçilen ülkenin Türkiye'deki büyükelçilik/başkonsolosluk adresi antete yazılır",
+            ),
+            Field(
+                "sehir",
+                "Başvuru yapılacak temsilcilik *",
+                kind="select",
+                depends_on="ulke",
+                help="Ülkede birden fazla temsilcilik varsa şehir seçilir",
+            ),
             Field("host_lc", "Host Local Committee *", help="ör: AACHEN"),
             Field("baslangic_tarihi", "Program Başlangıç Tarihi *", placeholder="DD.MM.YYYY", half=True),
             Field("bitis_tarihi", "Program Bitiş Tarihi *", placeholder="DD.MM.YYYY", half=True),
@@ -158,15 +173,21 @@ class AcceptanceNoteDocument(DocumentType):
             Field("pasaport_no", "Pasaport Numarası *", help="ör: U35237737", half=True),
             Field("duzenlenme_tarihi", "Pasaport Düzenlenme Tarihi *", placeholder="DD.MM.YYYY", half=True),
             Field("gecerlilik_tarihi", "Pasaport Geçerlilik Tarihi *", placeholder="DD.MM.YYYY", half=True),
-            Field("sirket_adresi", "Şube Adresi (üst sağ) *", help="Mektup antetindeki adres"),
         ]
 
+    def field_options(self, key, parent_value=None):
+        if key == "sehir":
+            return [m["label"] for m in missions_for(parent_value or "")]
+        return super().field_options(key, parent_value)
+
     def assemble_data(self, form):
+        ulke = form["ulke"]
+        misyon = mission_for(ulke, form["sehir"])
         baslangic = form["baslangic_tarihi"].strip()
         bitis = form["bitis_tarihi"].strip()
         return {
             "name": form["name"].strip(),
-            "ulke": form["ulke"].strip(),
+            "ulke": ulke,
             "host_lc": form["host_lc"].strip(),
             "baslangic_tarihi": baslangic,
             "bitis_tarihi": bitis,
@@ -175,7 +196,8 @@ class AcceptanceNoteDocument(DocumentType):
             "pasaport_no": form["pasaport_no"].strip(),
             "duzenlenme_tarihi": form["duzenlenme_tarihi"].strip(),
             "gecerlilik_tarihi": form["gecerlilik_tarihi"].strip(),
-            "sirket_adresi": form["sirket_adresi"].strip(),
+            "sirket_adresi": misyon["address"],
+            "mission_title": misyon["title"],
         }
 
     def output_filename(self, data):

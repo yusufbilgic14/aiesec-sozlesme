@@ -55,6 +55,20 @@ else:
                 help=f.help or None,
                 key=f"{doc_id}_{f.key}",
             )
+        if f.kind == "select":
+            parent_value = None
+            if f.depends_on:
+                parent_value = st.session_state.get(f"{doc_id}_{f.depends_on}")
+            options = doc_type.field_options(f.key, parent_value) if f.depends_on else doc_type.field_options(f.key)
+            if f.depends_on and len(options) == 1:
+                # single mission for this country: no dropdown needed
+                return options[0]
+            return st.selectbox(
+                f.label,
+                options=options,
+                help=f.help or None,
+                key=f"{doc_id}_{f.key}",
+            )
         return st.text_input(
             f.label,
             placeholder=f.placeholder or None,
