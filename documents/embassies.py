@@ -19,7 +19,12 @@ Addresses were verified against official sources (Aug 2026), e.g.:
 - Indonesia: kemlu.go.id/ankara (moved to Sukarno Cd. end of 2021),
   id.wikipedia KJRI Istanbul (Dikilitaş, Beşiktaş)
 - Sri Lanka: srilanka.org.tr (official)
-- Portugal: ancara.embaixadaportugal.mne.gov.pt (official)
+- Portugal: ancara.embaixadaportugal.mne.gov.pt (embassy),
+  portaldascomunidades.mne.gov.pt (İstanbul is an HONORARY consulate)
+
+The ``title`` strings must match how each mission names itself in real visa
+letters: Poland keeps "The ... in Istanbul", Egypt/India omit "in Istanbul",
+Portugal's İstanbul office is an honorary consulate.
 
 Keep addresses <= ~65 chars so the 8.5pt right-aligned letterhead line fits
 its rect without insert_htmlbox scale_low kicking in.
@@ -62,7 +67,7 @@ MISSIONS = {
         },
         {
             "label": "İstanbul — Başkonsolosluk",
-            "title": "Consulate General of the Arab Republic of Egypt in Istanbul",
+            "title": "Consulate General of the Arab Republic of Egypt",
             "address": "Cevdetpaşa Cad. No: 12, Bebek, Beşiktaş / İstanbul",
         },
     ],
@@ -84,6 +89,11 @@ MISSIONS = {
             "title": "Embassy of Portugal",
             "address": "Kırlangıç Sok. No: 39, Gaziosmanpaşa, Çankaya / Ankara",
         },
+        {
+            "label": "İstanbul — Fahri Konsolosluk",
+            "title": "Honorary Consulate of Portugal in Istanbul",
+            "address": "Meclisi Mebusan Cd. No: 77, Kat 5, Fındıklı, Kabataş / İstanbul",
+        },
     ],
     "India": [
         {
@@ -93,7 +103,7 @@ MISSIONS = {
         },
         {
             "label": "İstanbul — Başkonsolosluk",
-            "title": "Consulate General of India in Istanbul",
+            "title": "Consulate General of India",
             "address": "Cumhuriyet Cad. No: 42, Elmadag, Şişli / İstanbul",
         },
     ],
@@ -143,7 +153,7 @@ MISSIONS = {
         },
         {
             "label": "İstanbul — Başkonsolosluk",
-            "title": "Consulate General of the Republic of Poland in Istanbul",
+            "title": "The Consulate General of the Republic of Poland in Istanbul",
             "address": "Eski Büyükdere Cad. No: 7, GİZ 2000 Plaza, Maslak / İstanbul",
         },
     ],

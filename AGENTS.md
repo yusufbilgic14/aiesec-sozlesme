@@ -95,9 +95,13 @@ uzun girdide taşma: commit 4b61906'dan vazgeçildi).
   `assemble_data` misyonu `sirket_adresi` + `mission_title` anahtarlarına çözer;
   `visa_officer` satırı "The Visa Officer, <b>{mission_title}</b>" olur (şablonun sabit
   "Consulate General of the Federal Republic of Germany" yazısı yerine her temsilciliğin
-  resmi adı). Adresler ~65 karakteri geçmemeli (8.5pt antet satırı rect'ine scale_low
-  tetiklenmeden sığsın). Adresler resmi kaynaklardan doğrulandı (Ağu 2026) — değişiklik
-  yaparken kaynağı teyit et.
+  resmi adı). Adlar temsilciliklerin gerçek mektuplarında kullandığı biçimle birebir
+  tutulmalı: Polonya "The Consulate General of the Republic of Poland in Istanbul",
+  Portekiz'in İstanbul varlığı FAHRİ konsolosluktur ("Honorary Consulate of Portugal in
+  Istanbul", portaldascomunidades.mne.gov.pt), Mısır/Hindistan İstanbul adlarında
+  "in Istanbul" yoktur. Adresler ~65 karakteri geçmemeli (8.5pt antet satırı rect'ine
+  scale_low tetiklenmeden sığsın). Adresler resmi kaynaklardan doğrulandı (Ağu 2026) —
+  değişiklik yaparken kaynağı teyit et.
 - Hizalama şablonu **birebir** kopyalanmalı: gövde satırları sola (x=54.0), `letterhead`
   sağa (sağ kenar 572.7) ve `visa_officer` da sağa (sağ kenar 577.7, rect x1=578.9,
   `align="right"`) — şablonun anlık bbox'ını ölçmeden "sola hizalı" varsayma (git c94253c).
