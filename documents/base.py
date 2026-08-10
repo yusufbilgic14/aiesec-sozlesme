@@ -24,6 +24,7 @@ class Field:
     half: bool = False  # renders paired with the next half field in a 2-col row
     options: tuple = ()  # "select" fields: static option list
     depends_on: str = ""  # "select" fields: key of the field this one cascades from
+    default_from: str = ""  # "text" fields: key of a field whose value derives its default
 
 
 class DocumentType:
@@ -56,6 +57,18 @@ class DocumentType:
             if f.key == key:
                 return list(f.options)
         return []
+
+    def field_default(self, key: str, parent_value: Optional[str] = None) -> Optional[str]:
+        """Auto-fill default for a "text" field whose ``default_from`` is set.
+
+        ``parent_value`` is the current value of the ``default_from`` field
+        (e.g. country -> currency). Return None for no auto-fill. The widget
+        stays editable: user input takes precedence over this default.
+        """
+        for f in self.fields():
+            if f.key == key and not f.default_from:
+                return None
+        return None
 
     def assemble_data(self, form: Dict[str, Any]) -> Dict[str, Any]:
         """Map raw form values to the keys expected by ``fill``."""

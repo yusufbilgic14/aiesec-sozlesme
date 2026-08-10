@@ -161,6 +161,30 @@ MISSIONS = {
 
 COUNTRY_OPTIONS = tuple(MISSIONS.keys())
 
+# --- EP Sözleşmesi: ülke -> para birimi (ISO 4217) ------------------------
+# EP formu Türkçe ülke adlarıyla dolar (sözleşme metni "X ülkesinde" der);
+# ülke seçiminden sonra "Karşı Şubenin Proje Ücreti (Para Birimi)" alanı
+# buradaki kodla otomatik dolar (kullanıcı isterse elle değiştirir).
+EP_COUNTRY_OPTIONS = (
+    "Tunus", "Sri Lanka", "İtalya", "Mısır", "Almanya", "Portekiz",
+    "Hindistan", "Vietnam", "Cezayir", "Romanya", "Endonezya", "Polonya",
+)
+
+EP_CURRENCY_BY_COUNTRY = {
+    "Tunus": "TND",       # Tunisian Dinar
+    "Sri Lanka": "LKR",   # Sri Lankan Rupee
+    "İtalya": "EUR",      # Euro
+    "Mısır": "EGP",       # Egyptian Pound
+    "Almanya": "EUR",     # Euro
+    "Portekiz": "EUR",    # Euro
+    "Hindistan": "INR",   # Indian Rupee
+    "Vietnam": "VND",     # Vietnamese Dong
+    "Cezayir": "DZD",     # Algerian Dinar
+    "Romanya": "RON",     # Romanian Leu
+    "Endonezya": "IDR",   # Indonesian Rupiah
+    "Polonya": "PLN",     # Polish Zloty
+}
+
 
 def missions_for(country: str):
     return MISSIONS.get(country) or []

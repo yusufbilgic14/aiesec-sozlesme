@@ -32,6 +32,7 @@ from fill_pdf import (
     redact_and_collect,
 )
 from .base import DocumentType, Field
+from .embassies import EP_COUNTRY_OPTIONS, EP_CURRENCY_BY_COUNTRY
 
 TEMPLATE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -216,15 +217,26 @@ class EPSozlesmeDocument(DocumentType):
             Field("adres", "Adres *"),
             Field("eposta", "E-posta *"),
             Field("dogum_tarihi", "Doğum Tarihi *", placeholder="DD/MM/YYYY"),
-            Field("ulke", "Program Ülkesi *"),
+            Field(
+                "ulke",
+                "Program Ülkesi *",
+                kind="select",
+                options=EP_COUNTRY_OPTIONS,
+                help="Para birimi alanı seçilen ülkeye göre otomatik dolar (elle değiştirilebilir)",
+            ),
             Field("baslangic_tarihi", "Başlangıç Tarihi *", placeholder="DD/MM/YYYY", half=True),
             Field("bitis_tarihi", "Bitiş Tarihi *", placeholder="DD/MM/YYYY", half=True),
             Field("proje_ucreti_tutar", "Karşı Şubenin Proje Ücreti (Tutar) *", kind="number", half=True),
-            Field("proje_ucreti_para", "Karşı Şubenin Proje Ücreti (Para Birimi) *", help="ör: EGP, USD, EUR", half=True),
+            Field("proje_ucreti_para", "Karşı Şubenin Proje Ücreti (Para Birimi) *", help="ör: EGP, USD, EUR", half=True, default_from="ulke"),
             Field("danismanlik_ucreti", "Danışmanlık Ücreti *", kind="number", half=True),
             Field("danismanlik_ucreti_yazi", "Danışmanlık Ücreti (Yazıyla) *", help="ör: altıbindokuyüzotuz", half=True),
             Field("sozlesme_tarihi", "Sözleşme Tarihi *", placeholder="DD/MM/YYYY"),
         ]
+
+    def field_default(self, key, parent_value=None):
+        if key == "proje_ucreti_para":
+            return EP_CURRENCY_BY_COUNTRY.get(parent_value or "")
+        return super().field_default(key, parent_value)
 
     def assemble_data(self, form):
         return {

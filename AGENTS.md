@@ -12,7 +12,9 @@ ekleneceğini kalıcı olarak hatırlamak için yazıldı.
 - **documents/** — belge türleri. Her PDF bir `DocumentType` alt sınıfıdır ve
   `documents/__init__.py` içindeki `DOCUMENT_TYPES` registry'sine kayıtlıdır.
   `documents/embassies.py` belge türü DEĞİLDİR — AN'nin ülke→temsilcilik veritabanıdır
-  (registry'de yok).
+  (registry'de yok). Aynı dosyada EP için `EP_COUNTRY_OPTIONS` (Türkçe ülke adları —
+  sözleşme metni "X ülkesinde" der) ve `EP_CURRENCY_BY_COUNTRY` (ISO 4217:
+  TND/LKR/EUR/EGP/INR/VND/DZD/RON/IDR/PLN) bulunur — AN İngilizce, EP Türkçe kullanır.
 - **fill_pdf.py** — tüm belge türlerinin kullandığı düşük seviye PDF motoru
   (font bulma, redaction, baseline, screenshot işleme).
 - **taslak_sözleşme.pdf** — EP Sözleşmesi şablonu (10 sayfa). Şekil, yer tutucu
@@ -152,12 +154,16 @@ fill_pdf.py            → ortak motor (font, rect, baseline, redaction, screens
 - `ID / NAME / DESCRIPTION` — registry key'i ve UI etiketi
 - `TEMPLATE_PATH` + `template_available()` — şablon kontrolü; yoksa UI uyarı verir
 - `fields() -> List[Field]` — form; `Field(key, label, kind="text"|"number"|"select",
-  required, placeholder, help, max_chars, half, options, depends_on)`; `half=True` olan
-  alanlar bir sonraki half alanla yan yana 2 sütunda render edilir; `kind="select"` →
-  `st.selectbox` (statik `options` ya da `depends_on` ile kademeli: şehir gibi); tek
-  seçenek kalan bağımlı selectbox UI'da render edilmez (değeri otomatik doldurulur)
+  required, placeholder, help, max_chars, half, options, depends_on, default_from)`;
+  `half=True` olan alanlar bir sonraki half alanla yan yana 2 sütunda render edilir;
+  `kind="select"` → `st.selectbox` (statik `options` ya da `depends_on` ile kademeli:
+  şehir gibi); tek seçenek kalan bağımlı selectbox UI'da render edilmez (değeri otomatik
+  doldurulur); `default_from` olan text alanı, bağlı olduğu alanın değerinden türetilen
+  otomatik varsayılanla dolar ve kullanıcı elle değiştirebilir (bak: EP `proje_ucreti_para`)
 - `field_options(key, parent_value)` — bağımlı selectlerin seçenek listesi; varsayılan
   `Field.options`'ı döner, kademeli alanlarda override edilir (bak: AN `sehir`)
+- `field_default(key, parent_value)` — `default_from`'u olan text alanlarının otomatik
+  varsayılanı (bak: EP `proje_ucreti_para`, ülke→para birimi)
 - `assemble_data(form)` — ham form değerlerini `fill()`'in beklediği anahtarlara çevirir
   (ör. `tarih_araligi = f"[{baslangic}]- [{bitis}]"` birleştirmeleri, AN'de misyon
   çözümlemesi)
@@ -253,6 +259,13 @@ doğrula — AN'nin şu anki durumu tüm maddeleri geçiyor:
   çıktısında da ligature yoktu, böylece birebir hizalı).
 - Screenshot sayfalarında eski görüntüyü sadece redact etmek yetmez — stream'i beyaz
   JPEG ile değiştirmek gerekiyor (`clear_screenshots`).
+- Streamlit: `text_input(value=X)`'in `value`'su ilk render'dan sonraki rerun'larda **propagate
+  olmaz** (widget state session'da kalır). Ülke→para birimi gibi otomatik dolan ama elle
+  değiştirilebilir alanlar için app.py `_auto` session key'i tutar: alan değeri son otomatik
+  değere eşitse (kullanıcı sapmamışsa) parent değişince üzerine yazılır; kullanıcı elle
+  değiştirdiyse değeri korunur (elle tekrar otomatik değere dönerse takip geri gelir).
+- PyMuPDF çıktı metninde `\xa0` boşluk, `\xad` tire olur — string karşılaştırırken normalize
+  et (assert "Mısır ülkesinde" gibi kontroller yanlış pozitif patlar).
 
 ## Çalıştırma
 

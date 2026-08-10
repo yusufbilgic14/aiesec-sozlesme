@@ -69,13 +69,24 @@ else:
                 help=f.help or None,
                 key=f"{doc_id}_{f.key}",
             )
-        return st.text_input(
-            f.label,
-            placeholder=f.placeholder or None,
-            max_chars=f.max_chars or None,
-            help=f.help or None,
-            key=f"{doc_id}_{f.key}",
-        )
+        text_kwargs = {
+            "placeholder": f.placeholder or None,
+            "max_chars": f.max_chars or None,
+            "help": f.help or None,
+            "key": f"{doc_id}_{f.key}",
+        }
+        if f.default_from:
+            parent_value = st.session_state.get(f"{doc_id}_{f.default_from}")
+            default = doc_type.field_default(f.key, parent_value)
+            auto_key = f"{doc_id}_{f.key}_auto"
+            last_auto = st.session_state.get(auto_key)
+            if default:
+                # Follow the parent field unless the user has manually diverged
+                current = st.session_state.get(text_kwargs["key"])
+                if last_auto is None or current == last_auto:
+                    st.session_state[text_kwargs["key"]] = default
+                st.session_state[auto_key] = default
+        return st.text_input(f.label, **text_kwargs)
 
     i = 0
     while i < len(fields):
