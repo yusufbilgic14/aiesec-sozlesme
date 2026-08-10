@@ -7,9 +7,16 @@ Filling strategy (see AGENTS.md for the full write-up):
 2. Page 2 (index 1): Section 5 is redacted from "Sözleşmede bahsi" until
    "kabul eder." and re-inserted via ``insert_htmlbox`` to get native ``<b>``
    bold for the date range (commits 7b9360c / 47220df).
-3. Remaining fields: simple placeholder redaction + baseline-aligned insertion
-   (``redact_and_collect`` / ``insert_pending``).
-4. Pages 8-10 (indexes 7-9): template screenshots are blanked and replaced by
+3. Pages 3-4 (indexes 2-3): every sentence containing a fee value ("6930",
+   "(altıbindokuyüzotuz)", "(3770) EGP", "[6930]") is rebuilt wholesale via
+   ``insert_htmlbox`` with the repo TimesNewRoman fonts (``@font-face``), so
+   any input length re-wraps cleanly (slot-based swaps overflowed: long
+   amounts clashed with the following words, short ones left gaps - fixed
+   with the Acceptance Note's region approach). See FEE_REGIONS.
+4. Remaining placeholders: simple redaction + baseline-aligned insertion
+   (``redact_and_collect`` / ``insert_pending``); only "Mısır", the date
+   range (section-5 fallbacks) and "14/05/2026" remain slots.
+5. Pages 8-10 (indexes 7-9): template screenshots are blanked and replaced by
    user-uploaded screenshots, letterboxed into fixed slots.
 """
 
@@ -41,44 +48,104 @@ TEMPLATE_PATH = os.path.join(
 
 # (page_index, placeholder text in template, data key, use_bold)
 REPLACEMENTS = [
-    (0, "39931582910", "tc_kimlik", False),
-    (0, "Mehmet Akif mah. Mimar Sinan Cad. Alınteri sk. No19", "adres", False),
-    (0, "ycharputlu@gmail.com", "eposta", False),
-    (0, "19.08.2004", "dogum_tarihi", False),
-    (0, "Yusuf Can", "ad", False),
-    (0, "Harputlu", "soyad", False),
     (1, "Mısır", "ulke", False),
     (1, "[01/08/2026]- [29/08/2026]", "tarih_araligi", True),
-    (2, "(3770) EGP", "proje_ucreti", True),
-    (2, "6930", "danismanlik_ucreti", True),
-    (2, "(altıbindokuyüzotuz)", "danismanlik_ucreti_yazi", False),
-    (3, "[6930]", "danismanlik_ucreti_braket", True),
     (6, "14/05/2026", "sozlesme_tarihi", True),
 ]
 
-# Optional value transforms applied before insertion
-TEXT_TRANSFORMS = {
-    "tarih_araligi": lambda v: v,
-    "danismanlik_ucreti_braket": lambda v: f"[{v}]",
-    "danismanlik_ucreti_yazi": lambda v: f"({v})",
-}
-
 # Minimal expansion around the found placeholder rect (x, y half-padding)
 EXPANDED_RECTS = {
-    "tc_kimlik": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "adres": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "eposta": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "dogum_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "ad": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
-    "soyad": lambda r: fitz.Rect(r.x0, r.y0 - 2, r.x1 + 60, r.y1 + 6),
     "ulke": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
     "tarih_araligi": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
-    "proje_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
-    "danismanlik_ucreti": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
-    "danismanlik_ucreti_yazi": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
-    "danismanlik_ucreti_braket": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
     "sozlesme_tarihi": lambda r: fitz.Rect(r.x0, r.y0 - 1, r.x1 + 1, r.y1 + 2),
 }
+
+# The variable-width fee values ("6930", "(altıbindokuyüzotuz)", "(3770) EGP",
+# "[6930]") cannot be swapped slot-by-slot: any input longer than the template
+# sample overflows into the following words or leaves gaps (the old app relied
+# on EXPANDED_RECTS sized for the sample values). Like the Acceptance Note,
+# each sentence containing a fee value is rebuilt wholesale via insert_htmlbox
+# (native <b> where the template is bold), so any input length re-wraps cleanly.
+#
+# Template metrics: 12pt TimesNewRoman, line pitch 14.48 (line-height 1.2067).
+# Calibrated (see AGENTS.md): text starts rect.x0 + 1pt; first-line baseline =
+# rect.y0 + 11.93 (TNR ascent 0.891 x 12 + (lh-1)/2 x 12). Regions keep a small
+# bottom margin below the last template line; taller content is auto-scaled by
+# insert_htmlbox (scale_low) instead of colliding with the static text below.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TNR_ARCHIVE = fitz.Archive(ROOT)
+TNR_HTML_CSS = (
+    "@font-face{font-family:ep_times;src:url(TimesNewRoman.ttf)}"
+    "@font-face{font-family:ep_times;font-weight:bold;src:url(TimesNewRomanBold.ttf)}"
+)
+FONT_SIZE_HTML = f"{FONT_SIZE}pt"
+FEE_LINE_HEIGHT = "1.2067"
+
+
+def _esc(s):
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _fee_html(text):
+    return (
+        f'<p style="font-family:ep_times;font-size:{FONT_SIZE_HTML};'
+        f"line-height:{FEE_LINE_HEIGHT};margin:0;padding:0;color:#000000\">"
+        f"{text}</p>"
+    )
+
+
+FEE_REGIONS = [
+    {  # 7.4 - danışmanlık ücreti paragraph tail (page 3 of 10, index 2)
+        "page": 2,
+        "redact": fitz.Rect(43.0, 487.8, 557.6, 559.8),
+        "text": fitz.Rect(42.2, 486.73, 558.3, 560.2),
+        "build": lambda d: (
+            "4. Değişim Katılımcısı 7.3. maddede belirtilen hizmetler için AIESEC Türkiye’ye "
+            f"vergiler dahil {_esc(d['danismanlik_ucreti'])} ({_esc(d['danismanlik_ucreti_yazi'])}) "
+            "Türk Lirası’nı işbu sözleşmenin imzalanmasından itibaren 3 gün içerisinde ödemeyi "
+            "kabul, beyan ve taahhüt eder. Kar amacı gütmeyen bir sivil toplum kuruluşu olan "
+            "AIESEC Türkiye Değişim Katılımcısı’ndan tahsil edilen gelirleri dernek "
+            "faaliyetlerinin fonlanması amacıyla kullanmakta olup ticari kar amacı gütmemektedir."
+        ),
+    },
+    {  # 7.6 - proje ücreti sentence (page 3 of 10, index 2)
+        "page": 2,
+        "redact": fitz.Rect(43.0, 648.3, 557.6, 676.8),
+        "text": fitz.Rect(42.2, 647.41, 558.3, 677.5),
+        "build": lambda d: (
+            "Değişim Katılımcısı Misafir Eden Şube’ye "
+            f"<b>{_esc(d['proje_ucreti'])}</b> "
+            "ödeme yapacağını bu hususun program eşleşme sayfasında yazanla aynı olduğunu "
+            "kabul, beyan ve taahhüt eder."
+        ),
+    },
+    {  # 7.7 - tazminat paragraph tail with [danışmanlık ücreti] (page 4 of 10, index 3)
+        "page": 3,
+        "redact": fitz.Rect(43.0, 385.5, 557.6, 443.0),
+        "text": fitz.Rect(42.2, 384.56, 558.3, 443.65),
+        "build": lambda d: (
+            "katılım gerçekleştirmezse AIESEC Türkiye’nin Misafir Eden Şube’ye ödemek zorunda "
+            "kalacağı tazminat miktarı olan "
+            f"[{_esc(d['danismanlik_ucreti_braket'])}] "
+            "TL tutarı 3 gün içerisinde AIESEC’e ödemeyi kabul, beyan ve taahhüt eder. Değişim "
+            "Katılımcısı işbu tazmin bedelinin kendisinin Program katılımı nedeniyle yapılacak "
+            "hazırlık ücretleri, konaklama ve sair bedelleri tazmin amaçlı olduğunu anladığını "
+            "kabul ve beyan eder."
+        ),
+    },
+]
+
+
+def _rewrite_fee_regions(doc, data):
+    for region in FEE_REGIONS:
+        doc[region["page"]].add_redact_annot(region["redact"], fill=(1, 1, 1))
+    for region in FEE_REGIONS:
+        doc[region["page"]].apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+    for region in FEE_REGIONS:
+        doc[region["page"]].insert_htmlbox(
+            region["text"], _fee_html(region["build"](data)),
+            css=TNR_HTML_CSS, archive=TNR_ARCHIVE,
+        )
 
 SECTION5_START_MARKER = "Sözleşmede bahsi"
 SECTION5_END_MARKER = "kabul eder."
@@ -282,6 +349,10 @@ class EPSozlesmeDocument(DocumentType):
         # Page 2 (index 1): section 5 paragraph rewrite
         section5_handled = _fill_page2_section5(doc, data, has_regular, has_bold)
 
+        # Pages 3-4 (indexes 2-3): fee-value sentences rebuilt wholesale
+        # (variable-width values would overflow their slots otherwise)
+        _rewrite_fee_regions(doc, data)
+
         # All other placeholders
         pending = []
         for page_idx, old_text, key, use_bold in REPLACEMENTS:
@@ -293,10 +364,6 @@ class EPSozlesmeDocument(DocumentType):
             new_text = data.get(key, "")
             if not new_text:
                 continue
-
-            transform = TEXT_TRANSFORMS.get(key)
-            if transform:
-                new_text = transform(new_text)
 
             expand_fn = EXPANDED_RECTS.get(key)
             item = redact_and_collect(doc, page_idx, old_text, new_text, use_bold, expand_fn)

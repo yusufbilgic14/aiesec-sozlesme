@@ -63,6 +63,30 @@ durur (ör. `39931582910`, `[01/08/2026]- [29/08/2026]`, `(3770) EGP`). Doldurma
   `SECTION5_END_MARKER = "kabul eder."` arası yer bulunur, redact edilir ve
   `insert_htmlbox` ile HTML string yazılır — böylece `<b>` etiketiyle **native bold**
   desteklenir (git 47220df). HTML içine kullanıcı verisi girerken `& < >` kaçışlanır.
+- **Ücret cümleleri (3-4. sayfalar, index 2-3)**: Ücret içeren her cümle (7.4
+  danışmanlık paragrafı, 7.6 proje ücreti cümlesi, 7.7 `[6930]` tazminat paragrafı)
+  **bölge-bazlı komple yeniden yazılır** (`FEE_REGIONS`): slot-bazlı değişimde girdi
+  şablon örneğinden uzun olunca sonraki kelimeyle çakışıyor, kısa olunca boşluk
+  kalıyordu (kullanıcı raporu). AN ile aynı formül: redact + `insert_htmlbox`; ücret
+  değerleri şablonda bold ise (`(3770) EGP`) `<b>`, değilse (`6930`) düz — template'in
+  font'u neyse o! (eski slot kodunda `6930` yanlışlıkla bold basılıyordu; şablon düz.)
+  Font: repo'daki `TimesNewRoman*.ttf`, `fitz.Archive(ROOT)` + `@font-face` family
+  `ep_times` (section-5'in CharisSIL'inden farklı — sayfa gövdesi TNR olduğu için).
+  Kalibrasyon (ampirik): ilk satır baseline = `rect.y0 + 11.93` (TNR ascent 0.891×12
+  + (lh−1)/2×12), sol x0 = rect.x0 + 1pt inset, `line-height = 1.2067` (pitch 14.48).
+  R1/R2/R3 text rect'leri `(42.2, 486.73/647.41/384.56, 558.3, 560.2/677.5/443.65)`.
+  Uzun girdide ek satır → htmlbox `scale_low` otomatik küçültür; kutu altı komşu
+  statik satıra çarpmayacak şekilde sınırlı (R2 kutusu "8. DEĞİŞİM..." antetinin bbox
+  y0'sına ~0.45pt kala durur; R1 "5. Taraflar"a; R3 "8. Değişim Katılımcısı"na).
+  Bilinen şablon artefaktları (taklit EDİLMEZ): Word'ün kelime arası boşluklarını
+  ~5.0pt'te basması (fontunki 3.0 — bu yüzden rebuild satırları şablon satırlarından
+  ~24pt dar döner; kelime genişlikleri birebir uyumludur, aranabilirlik etkilenmez)
+  ve şablonun düzensiz satır aralığı (pitch 14.48/14.73 yalpalanması — uniform 14.48
+  kullanılır, geç satırlarda ≤0.5pt kayma olur). İlk satır baseline'ları Δ≤0.1pt'tedir.
+- **Font GSUB (kritik)**: TNR dosyalarında da `liga`/`rlig`/`dlig`/`fina`/`init`/
+  `isol`/`medi` vardı — htmlbox'ta "Misafir" (fi) PUA'ya dönüşüyordu. Carlito'daki
+  gibi fontTools ile söküldü (ccmp/locl kaldı; ADVANCE metrikleri değişmedi, insert_text
+  kullanımı etkilenmez). Bu fontları değiştirirken GSUB'siz olmalarına DİKKAT.
 
 ### Ekran görüntüleri (3. sayfa = 10-12. görsel sayfalar)
 
@@ -233,6 +257,12 @@ doğrula — AN'nin şu anki durumu tüm maddeleri geçiyor:
 
 - Refactor sonrası EP çıktısı **piksel bazında birebir** olduğu doğrulandı (10 sayfa
   render + sayfa metinleri + dosya boyutu). Fark yalnızca PDF metadata zaman damgaları.
+- Ücret bölgeleri (FEE_REGIONS) sonrası EP doğrulaması: şablon-eşit değerlerle R1/R3
+  ilk satır baseline Δ≤0.1pt, R2 Δ=0.08pt, tüm boyutlar 12.0 (scale_low yok), x0=43.2,
+  uzun girdi (`123123 (test)`, `(123123) EGP`) çakışma=0, PUA=0, "Misafir"/değerler
+  aranabilir. Sayfa hash'leri baseline'a yeniden kaydedildi (2-3 değişti, diğerleri
+  aynı). Çoğaltılamaz şablon artefaktları: Word kelime arası boşlukları ~5.0pt (bundan
+  rebuild satırları ~24pt dar), pitch 14.48/14.73 yalpalanması (geç satır kayması ≤0.5pt).
 - AN aynı-değer doğrulaması: şablondaki satır baseline'larıyla Δ ≤ 0.1pt, x0=54.0 birebir,
   font boyutları 10.0/8.5 (ölçeklenme yok); antet bbox'ı template ile ~0.2pt içinde.
   Uzun girdide çakışma = 0 (htmlbox scale_low taşmayı zaten engeller).
@@ -245,6 +275,9 @@ doğrula — AN'nin şu anki durumu tüm maddeleri geçiyor:
 
 - Aynı yer tutucu string PDF'te birden çok yerde geçiyorsa tüm rect'leri tek redaction'da
   birleştirmek başka içeriği de silebilir → `_pick_rect` yaklaşımı (d736b92).
+- Slot-bazlı değişimde girdi şablon placeholder'ından uzunsa taşar, kısaysa boşluk kalır —
+  uzunluğu değişken her değer bölge-bazlı yeniden yazılmalı (EP ücret cümleleri → FEE_REGIONS,
+  AN'nin tüm bölgeleri; sabit uzunluklu tarih/TC gibi alanlar slot olarak kalabilir).
 - Yazıyı `rect.y1`'e değil **span origin baseline'ına** yerleştir (5614248).
 - Redaction rect'ini fazla büyütme; komşu satırlar/içerik silinir (82750c8).
 - Font dosyası bulunamazsa crash olur → `font_available()` + `helv` fallback (8be1f70).
