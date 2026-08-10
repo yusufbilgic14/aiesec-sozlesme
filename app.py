@@ -79,13 +79,14 @@ else:
             parent_value = st.session_state.get(f"{doc_id}_{f.default_from}")
             default = doc_type.field_default(f.key, parent_value)
             auto_key = f"{doc_id}_{f.key}_auto"
-            last_auto = st.session_state.get(auto_key)
+            last_parent = st.session_state.get(auto_key)
             if default:
-                # Follow the parent field unless the user has manually diverged
-                current = st.session_state.get(text_kwargs["key"])
-                if last_auto is None or current == last_auto:
+                # Always follow the parent: whenever it changes (new country),
+                # force the derived default into the field. Manual edits are
+                # kept only while the parent stays the same.
+                if last_parent != parent_value:
                     st.session_state[text_kwargs["key"]] = default
-                st.session_state[auto_key] = default
+                    st.session_state[auto_key] = parent_value
         return st.text_input(f.label, **text_kwargs)
 
     i = 0

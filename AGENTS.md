@@ -261,9 +261,9 @@ doğrula — AN'nin şu anki durumu tüm maddeleri geçiyor:
   JPEG ile değiştirmek gerekiyor (`clear_screenshots`).
 - Streamlit: `text_input(value=X)`'in `value`'su ilk render'dan sonraki rerun'larda **propagate
   olmaz** (widget state session'da kalır). Ülke→para birimi gibi otomatik dolan ama elle
-  değiştirilebilir alanlar için app.py `_auto` session key'i tutar: alan değeri son otomatik
-  değere eşitse (kullanıcı sapmamışsa) parent değişince üzerine yazılır; kullanıcı elle
-  değiştirdiyse değeri korunur (elle tekrar otomatik değere dönerse takip geri gelir).
+  değiştirilebilir alanlar için app.py `_auto` session key'i **parent değerini** tutar:
+  parent (ülke) değişince alan zorla güncellenir; aynı ülke içindeki elle değişiklikler
+  korunur (yeni ülke seçilince takip daima geri gelir — kullanıcı talebi).
 - PyMuPDF çıktı metninde `\xa0` boşluk, `\xad` tire olur — string karşılaştırırken normalize
   et (assert "Mısır ülkesinde" gibi kontroller yanlış pozitif patlar).
 
