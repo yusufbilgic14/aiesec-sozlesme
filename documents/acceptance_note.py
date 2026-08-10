@@ -201,7 +201,7 @@ class AcceptanceNoteDocument(DocumentType):
         }
 
     def output_filename(self, data):
-        return f"{data['name'].replace(' ', '_')}_acceptance_note.pdf"
+        return f"{data['name'].replace(' ', '_')}_AN.pdf"
 
     def fill(self, data, screenshots=None):
         doc = fitz.open(TEMPLATE_PATH)
