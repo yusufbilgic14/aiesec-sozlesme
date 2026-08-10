@@ -67,9 +67,11 @@ durur (ör. `39931582910`, `[01/08/2026]- [29/08/2026]`, `(3770) EGP`). Doldurma
   danışmanlık paragrafı, 7.6 proje ücreti cümlesi, 7.7 `[6930]` tazminat paragrafı)
   **bölge-bazlı komple yeniden yazılır** (`FEE_REGIONS`): slot-bazlı değişimde girdi
   şablon örneğinden uzun olunca sonraki kelimeyle çakışıyor, kısa olunca boşluk
-  kalıyordu (kullanıcı raporu). AN ile aynı formül: redact + `insert_htmlbox`; ücret
-  değerleri şablonda bold ise (`(3770) EGP`) `<b>`, değilse (`6930`) düz — template'in
-  font'u neyse o! (eski slot kodunda `6930` yanlışlıkla bold basılıyordu; şablon düz.)
+  kalıyordu (kullanıcı raporu). AN ile aynı formül: redact + `insert_htmlbox`; bold
+  kuralları: proje ücreti (`(3770) EGP`) ve danışmanlık rakamları (`6930`, `[6930]`)
+  `<b>` ile — danışmanlık rakamları şablonda "düz" olsa da **kullanıcı talebiyle bold**
+  basılır (eski slot davranışı korunur); yazıyla (`altıbindokuyüzotuz`) kalıptaki gibi
+  düz kalır.
   Font: repo'daki `TimesNewRoman*.ttf`, `fitz.Archive(ROOT)` + `@font-face` family
   `ep_times` (section-5'in CharisSIL'inden farklı — sayfa gövdesi TNR olduğu için).
   Kalibrasyon (ampirik): ilk satır baseline = `rect.y0 + 11.93` (TNR ascent 0.891×12

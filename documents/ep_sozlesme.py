@@ -101,7 +101,7 @@ FEE_REGIONS = [
         "text": fitz.Rect(42.2, 486.73, 558.3, 560.2),
         "build": lambda d: (
             "4. Değişim Katılımcısı 7.3. maddede belirtilen hizmetler için AIESEC Türkiye’ye "
-            f"vergiler dahil {_esc(d['danismanlik_ucreti'])} ({_esc(d['danismanlik_ucreti_yazi'])}) "
+            f"vergiler dahil <b>{_esc(d['danismanlik_ucreti'])}</b> ({_esc(d['danismanlik_ucreti_yazi'])}) "
             "Türk Lirası’nı işbu sözleşmenin imzalanmasından itibaren 3 gün içerisinde ödemeyi "
             "kabul, beyan ve taahhüt eder. Kar amacı gütmeyen bir sivil toplum kuruluşu olan "
             "AIESEC Türkiye Değişim Katılımcısı’ndan tahsil edilen gelirleri dernek "
@@ -126,7 +126,7 @@ FEE_REGIONS = [
         "build": lambda d: (
             "katılım gerçekleştirmezse AIESEC Türkiye’nin Misafir Eden Şube’ye ödemek zorunda "
             "kalacağı tazminat miktarı olan "
-            f"[{_esc(d['danismanlik_ucreti_braket'])}] "
+            f"<b>[{_esc(d['danismanlik_ucreti_braket'])}] </b>"
             "TL tutarı 3 gün içerisinde AIESEC’e ödemeyi kabul, beyan ve taahhüt eder. Değişim "
             "Katılımcısı işbu tazmin bedelinin kendisinin Program katılımı nedeniyle yapılacak "
             "hazırlık ücretleri, konaklama ve sair bedelleri tazmin amaçlı olduğunu anladığını "
