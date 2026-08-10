@@ -87,6 +87,8 @@ uzun girdide taşma: commit 4b61906'dan vazgeçildi).
 - Bölge içeriği tamamen dinamiktir: değerler değil, **cümleler** veriden kurulur
   (`para3`/`para4`/`para5`/`title`/`visa_officer` tamamen yeniden yazılır; `details`
   6 satırlık blok, `letterhead` sağa hizalı antet adresi).
+- **Cinsiyet**: `cinsiyet` selectbox'ı (Kadın/Erkek) → `assemble_data` `hitap`
+  (Ms./Mr.) ve `zamir` (She/He) anahtarlarına çözer; sadece para3 bunları kullanır.
 - **Antet adresi = temsilcilik adresi** (şube adresi değil!): kullanıcı ülkeyi (`ulke`,
   kind="select", İngilizce ülke adları — mektup gövdesinde aynen kullanıldığı için),
   ülkede birden fazla temsilcilik varsa şehri (`sehir`, depends_on="ulke") seçer.

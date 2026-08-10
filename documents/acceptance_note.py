@@ -82,6 +82,8 @@ def _esc(s):
 def _build_regions_html(data):
     name = _esc(data["name"])
     ulke = _esc(data["ulke"])
+    hitap = _esc(data["hitap"])
+    zamir = _esc(data["zamir"])
     lc = _esc(data["host_lc"])
     start = _esc(data["baslangic_tarihi"])
     end = _esc(data["bitis_tarihi"])
@@ -111,7 +113,7 @@ def _build_regions_html(data):
         "title": p(f"Acceptance Note for <b>{name}</b>", align="center"),
         "para3": p(
             f"With this document, we hereby request for a visa for the period "
-            f"<b>{start}- {end}</b> for Ms. <b>{name}</b>, She will be taking part "
+            f"<b>{start}- {end}</b> for {hitap} <b>{name}</b>, {zamir} will be taking part "
             f"in a project in <b>{ulke}</b> in Local Committee <b>{lc}</b> for the "
             f"above said period."
         ),
@@ -152,6 +154,13 @@ class AcceptanceNoteDocument(DocumentType):
         return [
             Field("name", "Ad Soyad (pasaporttaki haliyle) *", help="ör: Ayşenur İnce"),
             Field(
+                "cinsiyet",
+                "Cinsiyet *",
+                kind="select",
+                options=("Kadın", "Erkek"),
+                help="Kadın: 'Ms.' ve 'She'; Erkek: 'Mr.' ve 'He' kullanılır",
+            ),
+            Field(
                 "ulke",
                 "Program Ülkesi (vize başvurusu yapılacak ülke) *",
                 kind="select",
@@ -183,11 +192,14 @@ class AcceptanceNoteDocument(DocumentType):
     def assemble_data(self, form):
         ulke = form["ulke"]
         misyon = mission_for(ulke, form["sehir"])
+        kadin = form["cinsiyet"] == "Kadın"
         baslangic = form["baslangic_tarihi"].strip()
         bitis = form["bitis_tarihi"].strip()
         return {
             "name": form["name"].strip(),
             "ulke": ulke,
+            "hitap": "Ms." if kadin else "Mr.",
+            "zamir": "She" if kadin else "He",
             "host_lc": form["host_lc"].strip(),
             "baslangic_tarihi": baslangic,
             "bitis_tarihi": bitis,
