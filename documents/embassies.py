@@ -167,7 +167,7 @@ COUNTRY_OPTIONS = tuple(MISSIONS.keys())
 # buradaki kodla otomatik dolar (kullanıcı isterse elle değiştirir).
 EP_COUNTRY_OPTIONS = (
     "Tunus", "Sri Lanka", "İtalya", "Mısır", "Almanya", "Portekiz",
-    "Hindistan", "Vietnam", "Cezayir", "Romanya", "Endonezya", "Polonya",
+    "Hindistan", "Vietnam", "Cezayir", "Romanya", "Endonezya", "Polonya", "Yunanistan"
 )
 
 EP_CURRENCY_BY_COUNTRY = {
@@ -183,6 +183,7 @@ EP_CURRENCY_BY_COUNTRY = {
     "Romanya": "RON",     # Romanian Leu
     "Endonezya": "IDR",   # Indonesian Rupiah
     "Polonya": "PLN",     # Polish Zloty
+    "Yunanistan": "EUR",  # Euro
 }
 
 
